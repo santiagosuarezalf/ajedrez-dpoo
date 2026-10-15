@@ -1,0 +1,10 @@
+# Archivos generados al compilar
+build/
+dist/
+*.class
+
+# Configuración local de NetBeans de cada uno (el resto de nbproject/ sí se comparte)
+nbproject/private/
+
+# macOS
+.DS_Store
