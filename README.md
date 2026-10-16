@@ -5,6 +5,8 @@ Profesor: Juan Carlos Navarro
 
 Ajedrez para dos jugadores en consola (Java, sin interfaz gráfica).
 
+📄 **[Avance del corte II](AVANCE.md)**: qué funciona, diagrama de clases y lo que falta.
+
 ## Equipo
 
 | Integrante | Código |
