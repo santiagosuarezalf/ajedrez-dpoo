@@ -251,69 +251,61 @@ public class Juego {
       * @param destino casilla a donde se quiere mover
       * @return {@code true} si era un enroque válido y se hizo; {@code false} en otro caso
       */
-     public boolean intentarEnroque(Casilla origen, Casilla destino){
-             System.out.println(">>> intentarEnroque " + origen + " -> " + destino);
-        Pieza rey = origen.getPieza();
-        if(rey == null || rey.getTipo() != TipoPieza.REY){
-            System.out.println("    corta: no es rey");
-            return false;
-        }
-        if (rey.seHaMovido()){
-            System.out.println("    corta: rey ya movido");
-            return false;
-        }
-        if (origen.getFila() != destino.getFila()){
-            System.out.println("    corta: filas distintas");
-            return false;
-        }
-        if(Math.abs(destino.getColumna() - origen.getColumna()) != 2){
-            System.out.println("    corta: distancia != 2 (es " + Math.abs(destino.getColumna() - origen.getColumna()) + ")");
-            return false;
-        }
-        if(estaEnJaque(turno)){
-            System.out.println("    corta: rey en jaque");
-            return false;
-        }
-        if(!destino.estaVacia()){
-            System.out.println("    corta: destino ocupado");
-            return false;
-        }
+public boolean intentarEnroque(Casilla origen, Casilla destino){
+    Pieza rey = origen.getPieza();
+    if (rey == null || rey.getTipo() != TipoPieza.REY){
+        return false;
+    }
+    if (rey.seHaMovido()){
+        return false;
+    }
+    if (origen.getFila() != destino.getFila()){
+        return false;
+    }
+    if (Math.abs(destino.getColumna() - origen.getColumna()) != 2){
+        return false;
+    }
+    if (estaEnJaque(turno)){
+        return false;
+    }
+    if (!destino.estaVacia()){
+        return false;
+    }
 
-        int fila = origen.getFila();
-        boolean corto = destino.getColumna() > origen.getColumna();
-        int colTorre = corto ? 7 : 0;
-        Casilla casillaTorre = tablero.getCasilla(fila, colTorre);
-        if (casillaTorre == null || casillaTorre.estaVacia()){
-            System.out.println("    corta: casilla torre vacia/null");
+    int fila = origen.getFila();
+    boolean corto = destino.getColumna() > origen.getColumna();
+    int colTorre = corto ? 7 : 0;
+    Casilla casillaTorre = tablero.getCasilla(fila, colTorre);
+    if (casillaTorre == null || casillaTorre.estaVacia()){
+        return false;
+    }
+
+    Pieza torre = casillaTorre.getPieza();
+    if (torre.getTipo() != TipoPieza.TORRE || torre.seHaMovido()){
+        return false;
+    }
+
+    // Las casillas entre el rey y la torre deben estar vacías
+    int paso = corto ? 1 : -1;
+    for (int c = origen.getColumna() + paso; c != colTorre; c += paso){
+        if (!tablero.getCasilla(fila, c).estaVacia()){
             return false;
         }
-        Pieza torre = casillaTorre.getPieza();
-        if(torre.getTipo() != TipoPieza.TORRE || torre.seHaMovido()){
-            System.out.println("    corta: torre no valida o movida (tipo=" + torre.getTipo() + " movida=" + torre.seHaMovido() + ")");
+    }
+
+    // El rey no puede pasar ni terminar en una casilla atacada
+    for (int i = 1; i <= 2; i++){
+        Casilla pasoRey = tablero.getCasilla(fila, origen.getColumna() + paso * i);
+        if (tablero.casillaAtacada(pasoRey, turno.opuesto())){
             return false;
         }
+    }
 
-        int paso = corto ? 1 : -1;
-        for (int c = origen.getColumna() + paso; c != colTorre; c += paso){
-            if (!tablero.getCasilla(fila, c).estaVacia()){
-                System.out.println("    corta: casilla intermedia ocupada en col " + c);
-                return false;
-            }
-        }
-
-        for (int i = 1; i <= 2; i++){
-            Casilla pasoRey = tablero.getCasilla(fila, origen.getColumna() + paso * i);
-            if (tablero.casillaAtacada(pasoRey, turno.opuesto())){
-                System.out.println("    corta: paso del rey atacado en col " + (origen.getColumna() + paso * i));
-                return false;
-            }
-        }
-
-        System.out.println("    ENROQUE APLICADO");
-        tablero.moverPieza(origen, destino);
-        tablero.moverPieza(casillaTorre, tablero.getCasilla(fila, origen.getColumna() + paso));
-        turno = turno.opuesto();
-        verificarFinDePartida();
-        return true;
-     }
+    // Todo en regla: mover rey y torre
+    tablero.moverPieza(origen, destino);
+    tablero.moverPieza(casillaTorre, tablero.getCasilla(fila, origen.getColumna() + paso));
+    turno = turno.opuesto();
+    verificarFinDePartida();
+    return true;
+}
   }
