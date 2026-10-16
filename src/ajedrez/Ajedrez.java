@@ -1,18 +1,25 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
- */
 package ajedrez;
-
-/**
- *
- * @author juanj
- */
 
 import java.util.Scanner;
 
+/**
+ * Clase principal. Maneja la partida en la consola: imprime el tablero, avisa de quién es el
+ * turno y si hay jaque, lee la jugada del jugador y se la pasa a {@link Juego}.
+ *
+ * @author Juan José Betancourt (67001968)
+ * @author Santiago Suárez Alfonso (67001862)
+ */
 public class Ajedrez {
 
+    /**
+     * Arranca una partida para dos jugadores en la consola. En cada turno pide la jugada como
+     * casilla de origen y de destino separadas por un espacio (por ejemplo {@code e2 e4}).
+     * Verifica que vengan exactamente dos casillas y que existan en el tablero; si la jugada no
+     * es legal, avisa y vuelve a pedirla. La partida sigue hasta que termina o hasta que alguien
+     * escribe {@code salir}, y al final imprime el resultado.
+     *
+     * @param args no se usan
+     */
     public static void main(String[] args) {
         Juego juego = new Juego();
         Scanner sc = new Scanner(System.in);
@@ -39,6 +46,15 @@ public class Ajedrez {
         if (juego.getResultado() != null) System.out.println(juego.getResultado());
     }
 
+    /**
+     * Convierte una casilla escrita en notación algebraica (por ejemplo {@code e2}) en la
+     * casilla del tablero. La letra da la columna ({@code a} = 0 … {@code h} = 7) y el número da
+     * la fila contando desde arriba ({@code 8} = 0 … {@code 1} = 7).
+     *
+     * @param t el tablero de la partida
+     * @param s la casilla escrita, de dos caracteres
+     * @return la casilla, o {@code null} si el texto no tiene dos caracteres o cae fuera del tablero
+     */
     private static Casilla parsearCasilla(Tablero t, String s) {
         if (s.length() != 2) {
           return null;

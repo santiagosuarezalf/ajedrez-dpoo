@@ -1,11 +1,25 @@
 package ajedrez;
 
 /**
+ * Los seis tipos de pieza del ajedrez. Cada subclase de {@link Pieza} devuelve el suyo en
+ * {@link Pieza#getTipo()}, lo que permite preguntar qué pieza es sin revisar su clase.
  *
- * @author juanj
+ * @author Juan José Betancourt (67001968)
+ * @author Santiago Suárez Alfonso (67001862)
  */
 public enum TipoPieza{
-  
-  PEON,TORRE,CABALLO,ALFIL,DAMA,REY;
+
+  /** El peón. */
+  PEON,
+  /** La torre. */
+  TORRE,
+  /** El caballo. */
+  CABALLO,
+  /** El alfil. */
+  ALFIL,
+  /** La dama. */
+  DAMA,
+  /** El rey. */
+  REY;
 
 }

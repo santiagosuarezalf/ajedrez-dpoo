@@ -1,28 +1,53 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package ajedrez;
-
-/**
- *
- * @author juanj
- */
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * El peón. Es la única pieza que solo avanza hacia adelante, cuya dirección depende del color, y
+ * que no captura igual a como se mueve: avanza en línea recta pero captura en diagonal.
+ *
+ * <p>Como la fila 0 de la matriz es la fila 8 del tablero, las blancas avanzan restando una fila
+ * (Δfila = -1) y las negras sumando una (Δfila = +1).</p>
+ *
+ * @author Juan José Betancourt (67001968)
+ * @author Santiago Suárez Alfonso (67001862)
+ */
 public class Peon extends Pieza {
 
+    /**
+     * Crea un peón del color indicado.
+     *
+     * @param color bando al que pertenece el peón
+     */
     public Peon(Color color) {
         super(color);
     }
 
+    /**
+     * Indica que esta pieza es un peón.
+     *
+     * @return {@link TipoPieza#PEON}
+     */
     @Override
     public TipoPieza getTipo() {
         return TipoPieza.PEON;
     }
 
+    /**
+     * Devuelve las casillas a las que el peón se puede mover. Verifica, en este orden:
+     * <ol>
+     *   <li><b>Avance de una casilla:</b> la casilla de adelante tiene que estar vacía; el peón
+     *       nunca captura de frente.</li>
+     *   <li><b>Doble paso:</b> solo si el peón no se ha movido, está en su fila inicial (6 para
+     *       las blancas, 1 para las negras) y las dos casillas de adelante están vacías.</li>
+     *   <li><b>Captura:</b> las dos casillas en diagonal hacia adelante, solo si tienen una
+     *       pieza rival.</li>
+     * </ol>
+     *
+     * @param t el tablero de la partida
+     * @return la lista de casillas de destino posibles
+     */
     @Override
     public List<Casilla> getMovimientosPosibles(Tablero t) {
         List<Casilla> moves = new ArrayList<>();
@@ -51,8 +76,13 @@ public class Peon extends Pieza {
     }
 
     /**
-     * Casillas que este peón ATACA (aunque estén vacías).
-     * Necesario para jaque, enroque y casillaAtacada.
+     * Devuelve las casillas que el peón amenaza: las dos diagonales de adelante, estén vacías u
+     * ocupadas. Se diferencia de {@link #getMovimientosPosibles(Tablero)} porque un peón amenaza
+     * su diagonal aunque no haya nada que capturar ahí, y eso es lo que importa para saber si el
+     * rey rival puede pararse en esa casilla o pasar por ella al enrocar.
+     *
+     * @param t el tablero de la partida
+     * @return la lista de casillas atacadas
      */
     @Override
     public List<Casilla> casillasAtacadas(Tablero t) {
