@@ -6,15 +6,16 @@ package ajedrez;
  * subclases {@link Peon}, {@link Torre}, {@link Caballo}, {@link Alfil}, {@link Dama} y
  * {@link Rey}.
  *
- * <p>Cada subclase decide cómo se mueve implementando {@link #getMovimientosPosibles(Tablero)}.
- * Para eso se apoya en dos métodos de esta clase: {@link #deslizar} para las piezas que avanzan
+ * <p>Implementa la interfaz {@link Movible}. Le da a {@link #casillasAtacadas(Tablero)} una
+ * versión por defecto, pero deja abstracto {@link #getMovimientosPosibles(Tablero)}: cada
+ * subclase decide cómo se mueve. Para eso se apoya en dos métodos de esta clase: {@link #deslizar} para las piezas que avanzan
  * varias casillas en línea recta (torre, alfil y dama) y {@link #agregarSiValida} para las que
  * dan un solo salto (caballo y rey).</p>
  *
  * @author Juan José Betancourt (67001968)
  * @author Santiago Suárez Alfonso (67001862)
  */
-public abstract class Pieza {
+public abstract class Pieza implements Movible {
 
   /** Bando al que pertenece la pieza. */
   protected Color color;
@@ -96,6 +97,7 @@ public abstract class Pieza {
    * @param t el tablero de la partida
    * @return la lista de casillas atacadas
    */
+    @Override
     public java.util.List<Casilla> casillasAtacadas(Tablero t){
         return getMovimientosPosibles(t);
     }

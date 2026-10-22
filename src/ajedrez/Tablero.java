@@ -152,7 +152,6 @@ public class Tablero {
         for (int c = 0; c <8; c++){
           Pieza pieza = casillas[f][c].getPieza();
           if(pieza != null && pieza.getColor() == porQuien && pieza.casillasAtacadas(this).contains(casilla)){
-            System.out.println("   ATACA a " + casilla + " la pieza " + pieza + " en (" + f + "," + c + ")");
             return true;
           }
         }
