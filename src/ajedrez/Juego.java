@@ -99,16 +99,13 @@ public class Juego {
     if(intentarEnroque(origen, destino)){
       return true;
     }
-    //Revisar si es geometricamente posible
     List<Casilla> posibles = pieza.getMovimientosPosibles(tablero);
     if (!posibles.contains(destino)){
       return false;
     }
-    //Revisar si deja al propio rey en jaque (simula y deshace sin dejar rastro)
     if (dejaReyEnJaque(origen, destino)){
       return false;
     }
-    //Movimiento legal: ahora si se hace de verdad (esto si marca la pieza como movida)
     tablero.moverPieza(origen, destino);
     turno = turno.opuesto();
     verificarFinDePartida();
@@ -128,16 +125,14 @@ public class Juego {
    * @param destino casilla a donde iría
    * @return {@code true} si después de la jugada el rey propio quedaría en jaque
    */
-  //Simula el movimiento, mira si el rey propio queda en jaque y deja el tablero EXACTAMENTE como estaba
   private boolean dejaReyEnJaque(Casilla origen, Casilla destino){
     Pieza pieza = origen.getPieza();
     Pieza capturada = destino.getPieza();
-    boolean piezaMovidaAntes = pieza.seHaMovido();   // guardar estado antes de simular
+    boolean piezaMovidaAntes = pieza.seHaMovido();
 
-    tablero.moverPieza(origen, destino);              // simulacion (marca la pieza como movida)
+    tablero.moverPieza(origen, destino);
     boolean enJaque = estaEnJaque(pieza.getColor());
 
-    //Deshacer: piezas, casillas y la bandera seHaMovido
     origen.setPieza(pieza);
     pieza.setCasilla(origen);
     pieza.setSeHaMovido(piezaMovidaAntes);
@@ -155,7 +150,6 @@ public class Juego {
      * @param color el bando cuyo rey se revisa
      * @return {@code true} si ese rey está atacado
      */
-    //El rey del color en turno esta atacado por alguna pieza enemiga
     public boolean estaEnJaque(Color color){
       Casilla casillaRey = buscarRey(color);
       if (casillaRey == null){
@@ -200,7 +194,6 @@ public class Juego {
       *
       * @return {@code true} si existe al menos una jugada legal
       */
-    //Se revisa si el jugador del turno actual tiene movimientos legales 
      public boolean hayMovimientosLegales(){
       for (int f = 0; f < 8; f++){
         for (int c = 0; c < 8; c++){
@@ -285,7 +278,6 @@ public boolean intentarEnroque(Casilla origen, Casilla destino){
         return false;
     }
 
-    // Las casillas entre el rey y la torre deben estar vacías
     int paso = corto ? 1 : -1;
     for (int c = origen.getColumna() + paso; c != colTorre; c += paso){
         if (!tablero.getCasilla(fila, c).estaVacia()){
@@ -293,7 +285,6 @@ public boolean intentarEnroque(Casilla origen, Casilla destino){
         }
     }
 
-    // El rey no puede pasar ni terminar en una casilla atacada
     for (int i = 1; i <= 2; i++){
         Casilla pasoRey = tablero.getCasilla(fila, origen.getColumna() + paso * i);
         if (tablero.casillaAtacada(pasoRey, turno.opuesto())){
@@ -301,7 +292,6 @@ public boolean intentarEnroque(Casilla origen, Casilla destino){
         }
     }
 
-    // Todo en regla: mover rey y torre
     tablero.moverPieza(origen, destino);
     tablero.moverPieza(casillaTorre, tablero.getCasilla(fila, origen.getColumna() + paso));
     turno = turno.opuesto();

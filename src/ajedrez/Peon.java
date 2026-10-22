@@ -51,20 +51,17 @@ public class Peon extends Pieza {
     @Override
     public List<Casilla> getMovimientosPosibles(Tablero t) {
         List<Casilla> moves = new ArrayList<>();
-        int direction = (color == Color.BLANCO) ? -1 : 1; // blanco sube (fila decrece)
+        int direction = (color == Color.BLANCO) ? -1 : 1;
         int filaInicial = (color == Color.BLANCO) ? 6 : 1;
 
-        // Avance de una casilla
         Casilla adelante = t.getCasilla(casilla.getFila() + direction, casilla.getColumna());
         if (adelante != null && adelante.estaVacia()) {
             moves.add(adelante);
-            // Doble paso solo desde posición inicial
             if (!seHaMovido && casilla.getFila() == filaInicial) {
                 Casilla doble = t.getCasilla(casilla.getFila() + 2 * direction, casilla.getColumna());
                 if (doble != null && doble.estaVacia()) moves.add(doble);
             }
         }
-        // Captura en diagonal (solo si hay enemigo)
         for (int dc : new int[]{-1, 1}) {
             Casilla diagonal = t.getCasilla(casilla.getFila() + direction, casilla.getColumna() + dc);
             if (diagonal != null && !diagonal.estaVacia()

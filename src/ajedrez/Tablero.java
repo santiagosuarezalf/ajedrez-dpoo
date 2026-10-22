@@ -77,7 +77,6 @@ public class Tablero {
     * queda en la columna d, sobre la casilla de su propio color.
     */
    public void configurarInicial() {
-        // Piezas negras (fila 0)
         colocarPieza(new Torre(Color.NEGRO),  0, 0);
         colocarPieza(new Caballo(Color.NEGRO),0, 1);
         colocarPieza(new Alfil(Color.NEGRO),  0, 2);
@@ -88,7 +87,6 @@ public class Tablero {
         colocarPieza(new Torre(Color.NEGRO),  0, 7);
         for (int c = 0; c < 8; c++) colocarPieza(new Peon(Color.NEGRO), 1, c);
 
-        // Piezas blancas (fila 7)
         colocarPieza(new Torre(Color.BLANCO),  7, 0);
         colocarPieza(new Caballo(Color.BLANCO),7, 1);
         colocarPieza(new Alfil(Color.BLANCO),  7, 2);
