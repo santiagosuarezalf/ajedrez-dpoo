@@ -8,9 +8,9 @@ package ajedrez;
  *
  * <p>Implementa la interfaz {@link Movible}. Le da a {@link #casillasAtacadas(Tablero)} una
  * versión por defecto, pero deja abstracto {@link #getMovimientosPosibles(Tablero)}: cada
- * subclase decide cómo se mueve. Para eso se apoya en dos métodos de esta clase: {@link #deslizar} para las piezas que avanzan
- * varias casillas en línea recta (torre, alfil y dama) y {@link #agregarSiValida} para las que
- * dan un solo salto (caballo y rey).</p>
+ * subclase decide cómo se mueve. Para eso se apoya en dos métodos de esta clase:
+ * {@link #deslizar} para las piezas que avanzan varias casillas en línea recta (torre, alfil y
+ * dama) y {@link #agregarSiValida} para las que dan un solo salto (caballo y rey).</p>
  *
  * @author Juan José Betancourt (67001968)
  * @author Santiago Suárez Alfonso (67001862)
