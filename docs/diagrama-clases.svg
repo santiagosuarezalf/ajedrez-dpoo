@@ -1,0 +1,191 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2876" height="1218" viewBox="0 0 2876 1218">
+<defs>
+<marker id="tri" viewBox="0 0 20 20" refX="19" refY="10" markerWidth="18" markerHeight="18" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L19,10 L1,19 Z" fill="#fff" stroke="#222" stroke-width="1.4"/></marker>
+<marker id="flecha" viewBox="0 0 20 20" refX="19" refY="10" markerWidth="14" markerHeight="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,2 L19,10 L1,18" fill="none" stroke="#222" stroke-width="1.6"/></marker>
+<marker id="rombo" viewBox="0 0 30 16" refX="1" refY="8" markerWidth="26" markerHeight="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,8 L15,1 L29,8 L15,15 Z" fill="#222"/></marker>
+<marker id="romboV" viewBox="0 0 30 16" refX="1" refY="8" markerWidth="26" markerHeight="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,8 L15,1 L29,8 L15,15 Z" fill="#fff" stroke="#222" stroke-width="1.4"/></marker>
+</defs>
+<style>
+text { font-family: Menlo, monospace; fill: #111; }
+.mie { font-size: 13px; }
+.nom { font-size: 15px; font-weight: bold; text-anchor: middle; font-family: Helvetica, Arial, sans-serif; }
+.est { font-size: 12px; text-anchor: middle; font-family: Helvetica, Arial, sans-serif; }
+.eti { font-size: 12px; font-family: Helvetica, Arial, sans-serif; fill: #333; }
+.tit { font-size: 22px; font-weight: bold; font-family: Helvetica, Arial, sans-serif; }
+.sub { font-size: 14px; font-family: Helvetica, Arial, sans-serif; fill: #444; }
+</style>
+<rect width="2876" height="1218" fill="#fff"/>
+<text x="40" y="42" class="tit">Diagrama de clases — Ajedrez en consola · Diseño y Programación Orientados a Objetos · Corte II</text>
+<text x="40" y="66" class="sub">Juan José Betancourt Quintero (67001968) · Santiago Suárez Alfonso (67001862) · paquete ajedrez</text>
+<rect x="40" y="100" width="419.36" height="86" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="249.68" y="118" class="nom">Ajedrez</text>
+<line x1="40" y1="130" x2="459.36" y2="130" stroke="#222" stroke-width="1"/>
+<line x1="40" y1="140" x2="459.36" y2="140" stroke="#222" stroke-width="1"/>
+<text x="50" y="154" class="mie" text-decoration="underline">+ main(args: String[]): void</text>
+<text x="50" y="172" class="mie" text-decoration="underline">- parsearCasilla(t: Tablero, s: String): Casilla</text>
+<rect x="801.7066666666667" y="100" width="527.52" height="338" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1065.4666666666667" y="118" class="nom">Juego</text>
+<line x1="801.7066666666667" y1="130" x2="1329.2266666666667" y2="130" stroke="#222" stroke-width="1"/>
+<text x="811.7066666666667" y="144" class="mie">- tablero: Tablero {readOnly}</text>
+<text x="811.7066666666667" y="162" class="mie">- turno: Color</text>
+<text x="811.7066666666667" y="180" class="mie">- terminado: boolean</text>
+<text x="811.7066666666667" y="198" class="mie">- resultado: String</text>
+<line x1="801.7066666666667" y1="212" x2="1329.2266666666667" y2="212" stroke="#222" stroke-width="1"/>
+<text x="811.7066666666667" y="226" class="mie">+ Juego()</text>
+<text x="811.7066666666667" y="244" class="mie">+ getTablero(): Tablero</text>
+<text x="811.7066666666667" y="262" class="mie">+ getTurno(): Color</text>
+<text x="811.7066666666667" y="280" class="mie">+ isTerminado(): boolean</text>
+<text x="811.7066666666667" y="298" class="mie">+ getResultado(): String</text>
+<text x="811.7066666666667" y="316" class="mie">+ mover(origen: Casilla, destino: Casilla): boolean</text>
+<text x="811.7066666666667" y="334" class="mie">- dejaReyEnJaque(origen: Casilla, destino: Casilla): boolean</text>
+<text x="811.7066666666667" y="352" class="mie">+ estaEnJaque(color: Color): boolean</text>
+<text x="811.7066666666667" y="370" class="mie">- buscarRey(color: Color): Casilla</text>
+<text x="811.7066666666667" y="388" class="mie">+ hayMovimientosLegales(): boolean</text>
+<text x="811.7066666666667" y="406" class="mie">- verificarFinDePartida(): void</text>
+<text x="811.7066666666667" y="424" class="mie">+ intentarEnroque(origen: Casilla, destino: Casilla): boolean</text>
+<rect x="1671.5733333333333" y="100" width="519.2" height="212" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1931.1733333333332" y="118" class="nom">Tablero</text>
+<line x1="1671.5733333333333" y1="130" x2="2190.7733333333335" y2="130" stroke="#222" stroke-width="1"/>
+<text x="1681.5733333333333" y="144" class="mie">- casillas: Casilla[8][8] {readOnly}</text>
+<line x1="1671.5733333333333" y1="158" x2="2190.7733333333335" y2="158" stroke="#222" stroke-width="1"/>
+<text x="1681.5733333333333" y="172" class="mie">+ Tablero()</text>
+<text x="1681.5733333333333" y="190" class="mie">+ getCasilla(f: int, c: int): Casilla</text>
+<text x="1681.5733333333333" y="208" class="mie">+ colocarPieza(pieza: Pieza, f: int, c: int): void</text>
+<text x="1681.5733333333333" y="226" class="mie">+ moverPieza(origen: Casilla, destino: Casilla): void</text>
+<text x="1681.5733333333333" y="244" class="mie">+ configurarInicial(): void</text>
+<text x="1681.5733333333333" y="262" class="mie">+ imprimir(): void</text>
+<text x="1681.5733333333333" y="280" class="mie">- simbolo(p: Pieza): String</text>
+<text x="1681.5733333333333" y="298" class="mie">+ casillaAtacada(casilla: Casilla, porQuien: Color): boolean</text>
+<rect x="2533.12" y="100" width="302.88" height="230" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="2684.56" y="118" class="nom">Casilla</text>
+<line x1="2533.12" y1="130" x2="2836.0" y2="130" stroke="#222" stroke-width="1"/>
+<text x="2543.12" y="144" class="mie">- fila: int {readOnly}</text>
+<text x="2543.12" y="162" class="mie">- columna: int {readOnly}</text>
+<text x="2543.12" y="180" class="mie">- pieza: Pieza</text>
+<line x1="2533.12" y1="194" x2="2836.0" y2="194" stroke="#222" stroke-width="1"/>
+<text x="2543.12" y="208" class="mie">+ Casilla(fila: int, columna: int)</text>
+<text x="2543.12" y="226" class="mie">+ getFila(): int</text>
+<text x="2543.12" y="244" class="mie">+ getColumna(): int</text>
+<text x="2543.12" y="262" class="mie">+ getPieza(): Pieza</text>
+<text x="2543.12" y="280" class="mie">+ setPieza(pieza: Pieza): void</text>
+<text x="2543.12" y="298" class="mie">+ estaVacia(): boolean</text>
+<text x="2543.12" y="316" class="mie">+ toString(): String</text>
+<rect x="1124.32" y="558" width="627.36" height="338" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1438.0" y="576" class="nom" font-style="italic">Pieza</text>
+<line x1="1124.32" y1="588" x2="1751.6799999999998" y2="588" stroke="#222" stroke-width="1"/>
+<text x="1134.32" y="602" class="mie"># color: Color</text>
+<text x="1134.32" y="620" class="mie"># casilla: Casilla</text>
+<text x="1134.32" y="638" class="mie"># seHaMovido: boolean</text>
+<line x1="1124.32" y1="652" x2="1751.6799999999998" y2="652" stroke="#222" stroke-width="1"/>
+<text x="1134.32" y="666" class="mie">+ Pieza(color: Color)</text>
+<text x="1134.32" y="684" class="mie">+ getColor(): Color</text>
+<text x="1134.32" y="702" class="mie">+ getCasilla(): Casilla</text>
+<text x="1134.32" y="720" class="mie">+ setCasilla(casilla: Casilla): void</text>
+<text x="1134.32" y="738" class="mie">+ seHaMovido(): boolean</text>
+<text x="1134.32" y="756" class="mie">+ marcarComoMovida(): void</text>
+<text x="1134.32" y="774" class="mie">+ setSeHaMovido(v: boolean): void</text>
+<text x="1134.32" y="792" class="mie" font-style="italic">+ getTipo(): TipoPieza</text>
+<text x="1134.32" y="810" class="mie" font-style="italic">+ getMovimientosPosibles(tablero: Tablero): List&lt;Casilla&gt;</text>
+<text x="1134.32" y="828" class="mie">+ casillasAtacadas(t: Tablero): List&lt;Casilla&gt;</text>
+<text x="1134.32" y="846" class="mie">+ toString(): String</text>
+<text x="1134.32" y="864" class="mie"># agregarSiValida(lista: List&lt;Casilla&gt;, t: Tablero, f: int, c: int): void</text>
+<text x="1134.32" y="882" class="mie"># deslizar(lista: List&lt;Casilla&gt;, t: Tablero, df: int, dc: int): void</text>
+<rect x="40" y="568" width="169.76" height="122" fill="#fff8e7" stroke="#222" stroke-width="1.4"/>
+<text x="124.88" y="586" class="est">«enumeration»</text>
+<text x="124.88" y="604" class="nom">Color</text>
+<line x1="40" y1="616" x2="209.76" y2="616" stroke="#222" stroke-width="1"/>
+<text x="50" y="630" class="mie">BLANCO</text>
+<text x="50" y="648" class="mie">NEGRO</text>
+<line x1="40" y1="662" x2="209.76" y2="662" stroke="#222" stroke-width="1"/>
+<text x="50" y="676" class="mie">+ opuesto(): Color</text>
+<rect x="40" y="760" width="128.16" height="166" fill="#fff8e7" stroke="#222" stroke-width="1.4"/>
+<text x="104.08" y="778" class="est">«enumeration»</text>
+<text x="104.08" y="796" class="nom">TipoPieza</text>
+<line x1="40" y1="808" x2="168.16" y2="808" stroke="#222" stroke-width="1"/>
+<text x="50" y="822" class="mie">PEON</text>
+<text x="50" y="840" class="mie">TORRE</text>
+<text x="50" y="858" class="mie">CABALLO</text>
+<text x="50" y="876" class="mie">ALFIL</text>
+<text x="50" y="894" class="mie">DAMA</text>
+<text x="50" y="912" class="mie">REY</text>
+<rect x="2341.76" y="748" width="494.24" height="94" fill="#eef4ff" stroke="#222" stroke-width="1.4"/>
+<text x="2588.88" y="766" class="est">«interface»</text>
+<text x="2588.88" y="784" class="nom" font-style="italic">Movible</text>
+<line x1="2341.76" y1="796" x2="2836.0" y2="796" stroke="#222" stroke-width="1"/>
+<text x="2351.76" y="810" class="mie" font-style="italic">+ getMovimientosPosibles(tablero: Tablero): List&lt;Casilla&gt;</text>
+<text x="2351.76" y="828" class="mie" font-style="italic">+ casillasAtacadas(tablero: Tablero): List&lt;Casilla&gt;</text>
+<rect x="40" y="1006" width="444.32" height="122" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="262.15999999999997" y="1024" class="nom">Peon</text>
+<line x1="40" y1="1036" x2="484.32" y2="1036" stroke="#222" stroke-width="1"/>
+<line x1="40" y1="1046" x2="484.32" y2="1046" stroke="#222" stroke-width="1"/>
+<text x="50" y="1060" class="mie">+ Peon(color: Color)</text>
+<text x="50" y="1078" class="mie">+ getTipo(): TipoPieza</text>
+<text x="50" y="1096" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+<text x="50" y="1114" class="mie">+ casillasAtacadas(t: Tablero): List&lt;Casilla&gt;</text>
+<rect x="510.32" y="1006" width="444.32" height="104" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="732.48" y="1024" class="nom">Torre</text>
+<line x1="510.32" y1="1036" x2="954.64" y2="1036" stroke="#222" stroke-width="1"/>
+<line x1="510.32" y1="1046" x2="954.64" y2="1046" stroke="#222" stroke-width="1"/>
+<text x="520.3199999999999" y="1060" class="mie">+ Torre(color: Color)</text>
+<text x="520.3199999999999" y="1078" class="mie">+ getTipo(): TipoPieza</text>
+<text x="520.3199999999999" y="1096" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+<rect x="980.64" y="1006" width="444.32" height="104" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1202.8" y="1024" class="nom">Caballo</text>
+<line x1="980.64" y1="1036" x2="1424.96" y2="1036" stroke="#222" stroke-width="1"/>
+<line x1="980.64" y1="1046" x2="1424.96" y2="1046" stroke="#222" stroke-width="1"/>
+<text x="990.64" y="1060" class="mie">+ Caballo(color: Color)</text>
+<text x="990.64" y="1078" class="mie">+ getTipo(): TipoPieza</text>
+<text x="990.64" y="1096" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+<rect x="1450.96" y="1006" width="444.32" height="104" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1673.1200000000001" y="1024" class="nom">Alfil</text>
+<line x1="1450.96" y1="1036" x2="1895.28" y2="1036" stroke="#222" stroke-width="1"/>
+<line x1="1450.96" y1="1046" x2="1895.28" y2="1046" stroke="#222" stroke-width="1"/>
+<text x="1460.96" y="1060" class="mie">+ Alfil(color: Color)</text>
+<text x="1460.96" y="1078" class="mie">+ getTipo(): TipoPieza</text>
+<text x="1460.96" y="1096" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+<rect x="1921.28" y="1006" width="444.32" height="104" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="2143.44" y="1024" class="nom">Dama</text>
+<line x1="1921.28" y1="1036" x2="2365.6" y2="1036" stroke="#222" stroke-width="1"/>
+<line x1="1921.28" y1="1046" x2="2365.6" y2="1046" stroke="#222" stroke-width="1"/>
+<text x="1931.28" y="1060" class="mie">+ Dama(color: Color)</text>
+<text x="1931.28" y="1078" class="mie">+ getTipo(): TipoPieza</text>
+<text x="1931.28" y="1096" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+<rect x="2391.6" y="1006" width="444.32" height="104" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="2613.7599999999998" y="1024" class="nom">Rey</text>
+<line x1="2391.6" y1="1036" x2="2835.92" y2="1036" stroke="#222" stroke-width="1"/>
+<line x1="2391.6" y1="1046" x2="2835.92" y2="1046" stroke="#222" stroke-width="1"/>
+<text x="2401.6" y="1060" class="mie">+ Rey(color: Color)</text>
+<text x="2401.6" y="1078" class="mie">+ getTipo(): TipoPieza</text>
+<text x="2401.6" y="1096" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+<polyline points="459.36,145 801.7066666666667,145" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="7,5" marker-end="url(#flecha)"/>
+<text x="630.5333333333333" y="137" class="eti" text-anchor="middle">«usa»</text>
+<polyline points="1329.2266666666667,145 1671.5733333333333,145" fill="none" stroke="#222" stroke-width="1.4" marker-start="url(#rombo)"/>
+<text x="1663.5733333333333" y="137" class="eti" text-anchor="end">1</text>
+<text x="1663.5733333333333" y="165" class="eti" text-anchor="end">tablero</text>
+<text x="1353.2266666666667" y="165" class="eti" text-anchor="start">1</text>
+<polyline points="2190.7733333333335,145 2533.12,145" fill="none" stroke="#222" stroke-width="1.4" marker-start="url(#rombo)"/>
+<text x="2525.12" y="137" class="eti" text-anchor="end">64</text>
+<text x="2525.12" y="165" class="eti" text-anchor="end">casillas</text>
+<text x="2214.7733333333335" y="165" class="eti" text-anchor="start">1</text>
+<polyline points="2684.56,330 2684.56,598 1751.6799999999998,598" fill="none" stroke="#222" stroke-width="1.4" marker-start="url(#romboV)"/>
+<text x="1761.6799999999998" y="590" class="eti" text-anchor="start">0..1</text>
+<text x="1761.6799999999998" y="618" class="eti" text-anchor="start">pieza</text>
+<text x="2694.56" y="362" class="eti" text-anchor="start">0..1  casilla</text>
+<polyline points="1751.6799999999998,795.0 2341.76,795.0" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="7,5" marker-end="url(#tri)"/>
+<text x="2046.72" y="787.0" class="eti" text-anchor="middle">implementa</text>
+<polyline points="861.7066666666667,438 861.7066666666667,610.7 209.76,610.7" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#flecha)"/>
+<text x="219.76" y="602.7" class="eti" text-anchor="start">turno  1</text>
+<polyline points="1124.32,659.5 209.76,659.5" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#flecha)"/>
+<text x="219.76" y="679.5" class="eti" text-anchor="start">color  1</text>
+<polyline points="1124.32,843.0 168.16,843.0" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="7,5" marker-end="url(#flecha)"/>
+<text x="646.24" y="835.0" class="eti" text-anchor="middle">«usa»</text>
+<polyline points="1438.0,956 1438.0,896" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#tri)"/>
+<line x1="262.15999999999997" y1="956" x2="2613.7599999999998" y2="956" stroke="#222" stroke-width="1.4"/>
+<line x1="262.15999999999997" y1="956" x2="262.15999999999997" y2="1006" stroke="#222" stroke-width="1.4"/>
+<line x1="732.48" y1="956" x2="732.48" y2="1006" stroke="#222" stroke-width="1.4"/>
+<line x1="1202.8" y1="956" x2="1202.8" y2="1006" stroke="#222" stroke-width="1.4"/>
+<line x1="1673.1200000000001" y1="956" x2="1673.1200000000001" y2="1006" stroke="#222" stroke-width="1.4"/>
+<line x1="2143.44" y1="956" x2="2143.44" y2="1006" stroke="#222" stroke-width="1.4"/>
+<line x1="2613.7599999999998" y1="956" x2="2613.7599999999998" y2="1006" stroke="#222" stroke-width="1.4"/>
+<text x="40" y="1188" class="sub">+ público · − privado · # protegido · cursiva = abstracto · subrayado = estático · ◆ composición · ◇ agregación · ▷ herencia (continua) / implementación (punteada) · → asociación · ⇢ dependencia (punteada)</text>
+</svg>
