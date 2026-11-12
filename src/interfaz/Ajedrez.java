@@ -1,10 +1,13 @@
-package ajedrez;
+package interfaz;
 
 import java.util.Scanner;
+import mundo.Casilla;
+import mundo.Juego;
+import mundo.Tablero;
 
 /**
  * Clase principal. Maneja la partida en la consola: imprime el tablero, avisa de quién es el
- * turno y si hay jaque, lee la jugada del jugador y se la pasa a {@link Juego}.
+ * turno y si hay jaque, lee la jugada del jugador y se la pasa a {@link mundo.Juego}.
  *
  * @author Juan José Betancourt (67001968)
  * @author Santiago Suárez Alfonso (67001862)
@@ -25,7 +28,7 @@ public class Ajedrez {
         Scanner sc = new Scanner(System.in);
 
         while (!juego.isTerminado()) {
-            juego.getTablero().imprimir();
+            VistaConsola.imprimirTablero(juego.getTablero());
             System.out.println("Turno: " + juego.getTurno());
             if (juego.estaEnJaque(juego.getTurno())) System.out.println("¡JAQUE!");
             System.out.print("Movimiento (ej. e2 e4) o 'salir': ");
@@ -42,7 +45,7 @@ public class Ajedrez {
             if (!juego.mover(o, d)) System.out.println("Movimiento ilegal.");
         }
 
-        juego.getTablero().imprimir();
+        VistaConsola.imprimirTablero(juego.getTablero());
         if (juego.getResultado() != null) System.out.println(juego.getResultado());
     }
 

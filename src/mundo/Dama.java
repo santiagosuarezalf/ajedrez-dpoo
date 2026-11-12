@@ -1,4 +1,4 @@
-package ajedrez;
+package mundo;
 
   import java.util.ArrayList;
   import java.util.List;

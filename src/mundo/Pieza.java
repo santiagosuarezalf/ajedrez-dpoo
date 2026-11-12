@@ -1,4 +1,4 @@
-package ajedrez;
+package mundo;
 
 /**
  * Clase abstracta que reúne lo que tienen en común todas las piezas: su color, la casilla donde

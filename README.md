@@ -17,7 +17,7 @@ Ajedrez para dos jugadores en consola (Java, sin interfaz gráfica).
 ## Cómo abrirlo
 
 En NetBeans: *File → Open Project* y escoger esta carpeta. Se corre con *Run* (clase principal
-`ajedrez.Ajedrez`). Necesita JDK 26, que es el que trae NetBeans.
+`interfaz.Ajedrez`). Necesita JDK 26, que es el que trae NetBeans.
 
 ## Cómo se juega
 

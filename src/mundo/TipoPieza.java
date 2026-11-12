@@ -1,4 +1,4 @@
-package ajedrez;
+package mundo;
 
 /**
  * Los seis tipos de pieza del ajedrez. Cada subclase de {@link Pieza} devuelve el suyo en

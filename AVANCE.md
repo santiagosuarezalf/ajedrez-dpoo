@@ -188,6 +188,6 @@ En NetBeans: *Open Project* → esta carpeta → *Run*. Algunas partidas cortas 
 3. **Interfaces**: aún no se usa ninguna interfaz de Java; se va a agregar donde tenga sentido en
    el diseño.
 4. **Los demás tipos de tablas** descritos en el documento del corte I.
-5. **Separar en paquetes** `mundo` (la lógica) e `interfaz` (la consola), como se vio en clase.
+5. ~~**Separar en paquetes** `mundo` (la lógica) e `interfaz` (la consola)~~ ✅ hecho: `mundo` tiene las reglas y `interfaz` tiene `Ajedrez` (main) y `VistaConsola` (dibujo del tablero).
 6. Quitar los mensajes de depuración que todavía imprime el enroque.
 7. Las correcciones al documento del corte I.
