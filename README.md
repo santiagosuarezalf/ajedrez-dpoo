@@ -27,8 +27,9 @@ Cada jugada se escribe con la casilla de origen y la de destino, separadas por u
 e2 e4
 ```
 
-Para el enroque se mueve el rey dos casillas (`e1 g1` corto, `e1 c1` largo). Cuando un peón llega a la
-última fila, el programa pregunta la pieza: `D` dama, `T` torre, `A` alfil o `C` caballo. Para terminar: `salir`.
+Para el enroque se mueve el rey dos casillas (`e1 g1` corto, `e1 c1` largo). La captura al paso se escribe como
+cualquier otra jugada (`e5 d6`). Cuando un peón llega a la última fila, el programa pregunta la pieza:
+`D` dama, `T` torre, `A` alfil o `C` caballo. Para terminar: `salir`.
 
 En el tablero, las mayúsculas son las piezas blancas y las minúsculas las negras:
 P peón · T torre · C caballo · A alfil · D dama · R rey.

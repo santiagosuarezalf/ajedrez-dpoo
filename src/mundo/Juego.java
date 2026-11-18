@@ -26,6 +26,13 @@ public class Juego {
    * {@code null}, la jugada está a medias: el turno no ha cambiado y no se aceptan más jugadas.
    */
   private Casilla coronacionPendiente;
+  /**
+   * Casilla por la que acaba de pasar un peón que avanzó dos casillas en la jugada anterior, o
+   * {@code null} si la jugada anterior no fue un doble paso. Es la casilla de destino de una
+   * posible captura al paso, y ese derecho dura una sola jugada: se borra después de cualquier
+   * jugada del bando que responde.
+   */
+  private Casilla objetivoAlPaso;
 
   /**
    * Crea una partida nueva: arma el tablero con las piezas en su posición inicial y le da el
@@ -101,6 +108,11 @@ public class Juego {
    * jugada queda a medias. No se cambia el turno ni se revisa el fin de la partida hasta que se
    * llame a {@link #coronacion(TipoPieza)}. Mientras tanto, {@code mover} rechaza todo.</p>
    *
+   * <p>La captura al paso se resuelve aparte ({@link #esCapturaAlPaso}), porque su destino es una
+   * casilla vacía y por eso el peón no la incluye en sus movimientos posibles. Después de
+   * cualquier jugada se actualiza {@link #objetivoAlPaso}: queda con la casilla saltada si fue un
+   * doble paso de peón, y en {@code null} en cualquier otro caso.</p>
+   *
    * @param origen casilla donde está la pieza que se quiere mover
    * @param destino casilla a donde se quiere mover
    * @return {@code true} si la jugada era legal y se hizo; {@code false} si no se hizo
@@ -117,7 +129,11 @@ public class Juego {
       return false;
     }
     if(intentarEnroque(origen, destino)){
+      objetivoAlPaso = null;
       return true;
+    }
+    if (esCapturaAlPaso(origen, destino)){
+      return hacerCapturaAlPaso(origen, destino);
     }
     List<Casilla> posibles = pieza.getMovimientosPosibles(tablero);
     if (!posibles.contains(destino)){
@@ -127,10 +143,66 @@ public class Juego {
       return false;
     }
     tablero.moverPieza(origen, destino);
+    objetivoAlPaso = null;
+    if (pieza.getTipo() == TipoPieza.PEON && Math.abs(destino.getFila() - origen.getFila()) == 2){
+      objetivoAlPaso = tablero.getCasilla((origen.getFila() + destino.getFila()) / 2, origen.getColumna());
+    }
     if (pieza.getTipo() == TipoPieza.PEON && destino.getFila() == filaDeCoronacion(pieza.getColor())){
       coronacionPendiente = destino;
       return true;
     }
+    turno = turno.opuesto();
+    verificarFinDePartida();
+    return true;
+  }
+
+  /**
+   * Indica si mover de {@code origen} a {@code destino} sería una captura al paso. Lo es cuando
+   * se cumplen las cuatro condiciones: la pieza es un peón; el destino es la casilla por la que
+   * pasó el peón rival en su doble paso de la jugada anterior ({@link #objetivoAlPaso}); el
+   * peón avanza una fila en diagonal; y al lado del peón, en la fila de origen y la columna del
+   * destino, está el peón rival que se va a capturar.
+   *
+   * <p>No revisa si la jugada deja al rey en jaque; eso lo hace {@link #dejaReyEnJaque}.</p>
+   *
+   * @param origen casilla donde está el peón
+   * @param destino casilla a la que se quiere mover
+   * @return {@code true} si la jugada es una captura al paso
+   */
+  private boolean esCapturaAlPaso(Casilla origen, Casilla destino){
+    if (objetivoAlPaso == null || destino != objetivoAlPaso || !destino.estaVacia()){
+      return false;
+    }
+    Pieza pieza = origen.getPieza();
+    if (pieza == null || pieza.getTipo() != TipoPieza.PEON){
+      return false;
+    }
+    int direccion = (pieza.getColor() == Color.BLANCO) ? -1 : 1;
+    if (destino.getFila() - origen.getFila() != direccion
+        || Math.abs(destino.getColumna() - origen.getColumna()) != 1){
+      return false;
+    }
+    Pieza vecino = tablero.getCasilla(origen.getFila(), destino.getColumna()).getPieza();
+    return vecino != null && vecino.getTipo() == TipoPieza.PEON && vecino.getColor() != pieza.getColor();
+  }
+
+  /**
+   * Hace una captura al paso que ya se sabe que lo es ({@link #esCapturaAlPaso}). Primero revisa
+   * que no deje al propio rey en jaque. Luego quita el peón rival, que <b>no está en el
+   * destino</b> sino a un lado (fila de origen, columna de destino), mueve el peón propio a la
+   * casilla de destino, borra el derecho al paso y cierra la jugada (turno y fin de partida).
+   *
+   * @param origen casilla donde está el peón que captura
+   * @param destino casilla a la que llega, la que el peón rival saltó
+   * @return {@code true} si se hizo; {@code false} si dejaría al propio rey en jaque
+   */
+  private boolean hacerCapturaAlPaso(Casilla origen, Casilla destino){
+    if (dejaReyEnJaque(origen, destino)){
+      return false;
+    }
+    tablero.getCasilla(origen.getFila(), destino.getColumna()).setPieza(null);
+    tablero.moverPieza(origen, destino);
+    objetivoAlPaso = null;
     turno = turno.opuesto();
     verificarFinDePartida();
     return true;
@@ -197,6 +269,14 @@ public class Juego {
     Pieza capturada = destino.getPieza();
     boolean piezaMovidaAntes = pieza.seHaMovido();
 
+    Casilla casillaPeonAlPaso = null;
+    Pieza peonAlPaso = null;
+    if (esCapturaAlPaso(origen, destino)){
+      casillaPeonAlPaso = tablero.getCasilla(origen.getFila(), destino.getColumna());
+      peonAlPaso = casillaPeonAlPaso.getPieza();
+      casillaPeonAlPaso.setPieza(null);
+    }
+
     tablero.moverPieza(origen, destino);
     boolean enJaque = estaEnJaque(pieza.getColor());
 
@@ -206,6 +286,9 @@ public class Juego {
     destino.setPieza(capturada);
     if (capturada != null){
       capturada.setCasilla(destino);
+    }
+    if (casillaPeonAlPaso != null){
+      casillaPeonAlPaso.setPieza(peonAlPaso);
     }
     return enJaque;
   }
@@ -273,6 +356,10 @@ public class Juego {
             if (!dejaReyEnJaque(origen, destino)){
               return true;
             }
+          }
+          if (objetivoAlPaso != null && esCapturaAlPaso(origen, objetivoAlPaso)
+              && !dejaReyEnJaque(origen, objetivoAlPaso)){
+            return true;
           }
         }
       }

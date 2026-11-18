@@ -29,7 +29,7 @@ y cada jugador escribe su movimiento como casilla de origen y casilla de destino
 | Rey ahogado (tablas) | ✅ |
 | Enroque corto y largo, con todas sus condiciones | ✅ |
 | Coronación del peón (dama, torre, alfil o caballo) | ✅ |
-| Captura al paso | ⬜ pendiente |
+| Captura al paso | ✅ |
 | Demás tipos de tablas (50 movimientos, triple repetición, material insuficiente, acuerdo) | ⬜ pendiente |
 
 ## 2. Diagrama de clases
@@ -49,6 +49,7 @@ classDiagram
         -boolean terminado
         -String resultado
         -Casilla coronacionPendiente
+        -Casilla objetivoAlPaso
         +mover(Casilla origen, Casilla destino) boolean
         +hayCoronacionPendiente() boolean
         +coronacion(TipoPieza) boolean
@@ -57,6 +58,8 @@ classDiagram
         +intentarEnroque(Casilla, Casilla) boolean
         -dejaReyEnJaque(Casilla, Casilla) boolean
         -buscarRey(Color) Casilla
+        -esCapturaAlPaso(Casilla, Casilla) boolean
+        -hacerCapturaAlPaso(Casilla, Casilla) boolean
         -filaDeCoronacion(Color) int
         -verificarFinDePartida()
     }
@@ -166,12 +169,15 @@ Es la misma idea de los vectores (Δfila, Δcolumna) del documento del corte I. 
 `Juego.mover()` decide si una jugada es legal en este orden:
 
 1. Hay una pieza en el origen y es del jugador en turno.
-2. Si es un enroque, lo valida y lo hace aparte (`intentarEnroque`).
+2. Si es un enroque, lo valida y lo hace aparte (`intentarEnroque`). Lo mismo con la **captura al
+   paso** (`esCapturaAlPaso` / `hacerCapturaAlPaso`): su destino es una casilla vacía, y por eso el
+   peón no la incluye en sus `getMovimientosPosibles()`.
 3. El destino está entre los `getMovimientosPosibles()` de la pieza. Ahí ya queda descartado
    mover a una casilla propia, y una casilla rival cuenta como captura.
 4. **La jugada no deja al propio rey en jaque.** `dejaReyEnJaque()` hace el movimiento en el
    tablero, revisa si el rey quedó atacado y lo deshace exactamente como estaba (piezas, casillas
-   y la marca de "ya se movió").
+   y la marca de "ya se movió"). En la captura al paso también quita y devuelve el peón rival,
+   que no está en el destino sino a un lado.
 5. Si pasa todo, se mueve. Si era un peón que llegó a la última fila, queda una **coronación
    pendiente** (el turno no cambia y `mover` rechaza todo hasta que se llame a
    `coronacion(TipoPieza)`). Si no, cambia el turno y se revisa si la partida terminó: sin jugadas
@@ -188,12 +194,13 @@ En NetBeans: *Open Project* → esta carpeta → *Run*. Algunas partidas cortas 
 | Jaque mate (mate del pastor) | `e2 e4` · `e7 e5` · `f1 c4` · `b8 c6` · `d1 h5` · `g8 f6` · `h5 f7` |
 | Enroque corto de blancas y largo de negras | `e2 e4` · `d7 d5` · `g1 f3` · `b8 c6` · `f1 c4` · `c8 f5` · `e1 g1` · `d8 d7` · `a2 a3` · `e8 c8` |
 | Movimientos ilegales | `a1 a4` (la torre no salta) · `e1 e2` (casilla propia) |
+| Captura al paso | `e2 e4` · `a7 a6` · `e4 e5` · `d7 d5` · `e5 d6` (el peón de d5 desaparece) |
 | Coronación con captura (blancas) | `a2 a4` · `b7 b5` · `a4 b5` · `a7 a6` · `b5 a6` · `b8 c6` · `a6 a7` · `c6 b8` · `a7 b8` y luego `d` |
 
 ## 6. Lo que sigue para la entrega del corte
 
 1. ~~**Coronación del peón**~~ ✅ hecho: `mover` deja la coronación pendiente y `coronacion(TipoPieza)` la completa; `Ajedrez` es quien le pregunta la pieza al jugador.
-2. **Captura al paso**.
+2. ~~**Captura al paso**~~ ✅ hecho: `Juego` recuerda en `objetivoAlPaso` la casilla que saltó un doble paso de peón, y ese derecho dura una sola jugada.
 3. **Interfaces**: aún no se usa ninguna interfaz de Java; se va a agregar donde tenga sentido en
    el diseño.
 4. **Los demás tipos de tablas** descritos en el documento del corte I.
