@@ -28,7 +28,7 @@ y cada jugador escribe su movimiento como casilla de origen y casilla de destino
 | Jaque mate (fin de la partida) | ✅ |
 | Rey ahogado (tablas) | ✅ |
 | Enroque corto y largo, con todas sus condiciones | ✅ |
-| Coronación del peón | ⬜ pendiente |
+| Coronación del peón (dama, torre, alfil o caballo) | ✅ |
 | Captura al paso | ⬜ pendiente |
 | Demás tipos de tablas (50 movimientos, triple repetición, material insuficiente, acuerdo) | ⬜ pendiente |
 
@@ -48,12 +48,16 @@ classDiagram
         -Color turno
         -boolean terminado
         -String resultado
+        -Casilla coronacionPendiente
         +mover(Casilla origen, Casilla destino) boolean
+        +hayCoronacionPendiente() boolean
+        +coronacion(TipoPieza) boolean
         +estaEnJaque(Color) boolean
         +hayMovimientosLegales() boolean
         +intentarEnroque(Casilla, Casilla) boolean
         -dejaReyEnJaque(Casilla, Casilla) boolean
         -buscarRey(Color) Casilla
+        -filaDeCoronacion(Color) int
         -verificarFinDePartida()
     }
 
@@ -168,8 +172,12 @@ Es la misma idea de los vectores (Δfila, Δcolumna) del documento del corte I. 
 4. **La jugada no deja al propio rey en jaque.** `dejaReyEnJaque()` hace el movimiento en el
    tablero, revisa si el rey quedó atacado y lo deshace exactamente como estaba (piezas, casillas
    y la marca de "ya se movió").
-5. Si pasa todo, se mueve, cambia el turno y se revisa si la partida terminó: sin jugadas legales
-   y en jaque → **jaque mate**; sin jugadas legales y sin jaque → **ahogado**.
+5. Si pasa todo, se mueve. Si era un peón que llegó a la última fila, queda una **coronación
+   pendiente** (el turno no cambia y `mover` rechaza todo hasta que se llame a
+   `coronacion(TipoPieza)`). Si no, cambia el turno y se revisa si la partida terminó: sin jugadas
+   legales y en jaque → **jaque mate**; sin jugadas legales y sin jaque → **ahogado**.
+   `coronacion()` hace lo mismo (turno y fin de partida) después de poner la pieza nueva, porque
+   la pieza coronada puede dar jaque mate.
 
 ## 5. Cómo probarlo
 
@@ -180,10 +188,11 @@ En NetBeans: *Open Project* → esta carpeta → *Run*. Algunas partidas cortas 
 | Jaque mate (mate del pastor) | `e2 e4` · `e7 e5` · `f1 c4` · `b8 c6` · `d1 h5` · `g8 f6` · `h5 f7` |
 | Enroque corto de blancas y largo de negras | `e2 e4` · `d7 d5` · `g1 f3` · `b8 c6` · `f1 c4` · `c8 f5` · `e1 g1` · `d8 d7` · `a2 a3` · `e8 c8` |
 | Movimientos ilegales | `a1 a4` (la torre no salta) · `e1 e2` (casilla propia) |
+| Coronación con captura (blancas) | `a2 a4` · `b7 b5` · `a4 b5` · `a7 a6` · `b5 a6` · `b8 c6` · `a6 a7` · `c6 b8` · `a7 b8` y luego `d` |
 
 ## 6. Lo que sigue para la entrega del corte
 
-1. **Coronación del peón**: al llegar a la última fila, el jugador escoge dama, torre, alfil o caballo.
+1. ~~**Coronación del peón**~~ ✅ hecho: `mover` deja la coronación pendiente y `coronacion(TipoPieza)` la completa; `Ajedrez` es quien le pregunta la pieza al jugador.
 2. **Captura al paso**.
 3. **Interfaces**: aún no se usa ninguna interfaz de Java; se va a agregar donde tenga sentido en
    el diseño.

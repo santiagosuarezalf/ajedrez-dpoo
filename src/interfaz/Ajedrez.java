@@ -4,6 +4,7 @@ import java.util.Scanner;
 import mundo.Casilla;
 import mundo.Juego;
 import mundo.Tablero;
+import mundo.TipoPieza;
 
 /**
  * Clase principal. Maneja la partida en la consola: imprime el tablero, avisa de quién es el
@@ -42,11 +43,41 @@ public class Ajedrez {
             Casilla d = parsearCasilla(juego.getTablero(), partes[1]);
             if (o == null || d == null) { System.out.println("Casilla inválida."); continue; }
 
-            if (!juego.mover(o, d)) System.out.println("Movimiento ilegal.");
+            if (!juego.mover(o, d)) { System.out.println("Movimiento ilegal."); continue; }
+
+            if (juego.hayCoronacionPendiente()) {
+                VistaConsola.imprimirTablero(juego.getTablero());
+                TipoPieza elegida = pedirPiezaCoronacion(sc);
+                if (elegida == null) break;
+                juego.coronacion(elegida);
+            }
         }
 
         VistaConsola.imprimirTablero(juego.getTablero());
         if (juego.getResultado() != null) System.out.println(juego.getResultado());
+    }
+
+    /**
+     * Le pregunta al jugador en qué pieza quiere convertir su peón y no se detiene hasta que
+     * escriba una opción válida. Preguntar es leer el teclado, por eso vive aquí y no en
+     * {@link Juego}: las reglas solo reciben la respuesta.
+     *
+     * @param sc el lector del teclado
+     * @return la pieza elegida, o {@code null} si el jugador escribió {@code salir}
+     */
+    private static TipoPieza pedirPiezaCoronacion(Scanner sc) {
+        while (true) {
+            System.out.print("¡Coronación! D (dama), T (torre), A (alfil), C (caballo) o 'salir': ");
+            String r = sc.nextLine().trim().toLowerCase();
+            switch (r) {
+                case "d": return TipoPieza.DAMA;
+                case "t": return TipoPieza.TORRE;
+                case "a": return TipoPieza.ALFIL;
+                case "c": return TipoPieza.CABALLO;
+                case "salir": return null;
+                default: System.out.println("Opción inválida.");
+            }
+        }
     }
 
     /**

@@ -20,6 +20,12 @@ public class Juego {
   private boolean terminado;
   /** Cómo terminó la partida, o {@code null} si todavía no ha terminado. */
   private String resultado;
+  /**
+   * Casilla del peón que acaba de llegar a la última fila y está esperando que se escoja en qué
+   * pieza se convierte, o {@code null} si no hay ninguna coronación pendiente. Mientras no sea
+   * {@code null}, la jugada está a medias: el turno no ha cambiado y no se aceptan más jugadas.
+   */
+  private Casilla coronacionPendiente;
 
   /**
    * Crea una partida nueva: arma el tablero con las piezas en su posición inicial y le da el
@@ -69,6 +75,17 @@ public class Juego {
   }
 
   /**
+   * Indica si hay un peón en la última fila esperando que se escoja su pieza. La interfaz lo
+   * consulta después de cada {@link #mover}: si es {@code true}, debe preguntarle al jugador y
+   * llamar a {@link #coronacion(TipoPieza)}.
+   *
+   * @return {@code true} si hay una coronación pendiente
+   */
+  public boolean hayCoronacionPendiente(){
+    return coronacionPendiente != null;
+  }
+
+  /**
    * Intenta hacer una jugada. Verifica, en este orden:
    * <ol>
    *   <li>Que la partida no haya terminado y que las dos casillas existan.</li>
@@ -80,12 +97,16 @@ public class Juego {
    * </ol>
    * Si pasa todo, mueve la pieza, cambia el turno y revisa si la partida terminó.
    *
+   * <p>Si la jugada lleva un peón a la última fila, es una coronación: el peón se mueve, pero la
+   * jugada queda a medias. No se cambia el turno ni se revisa el fin de la partida hasta que se
+   * llame a {@link #coronacion(TipoPieza)}. Mientras tanto, {@code mover} rechaza todo.</p>
+   *
    * @param origen casilla donde está la pieza que se quiere mover
    * @param destino casilla a donde se quiere mover
    * @return {@code true} si la jugada era legal y se hizo; {@code false} si no se hizo
    */
   public boolean mover(Casilla origen, Casilla destino){
-    if (terminado){
+    if (terminado || coronacionPendiente != null){
       return false;
     }
     if(origen == null || destino == null){
@@ -106,6 +127,53 @@ public class Juego {
       return false;
     }
     tablero.moverPieza(origen, destino);
+    if (pieza.getTipo() == TipoPieza.PEON && destino.getFila() == filaDeCoronacion(pieza.getColor())){
+      coronacionPendiente = destino;
+      return true;
+    }
+    turno = turno.opuesto();
+    verificarFinDePartida();
+    return true;
+  }
+
+  /**
+   * Devuelve la fila donde un peón de ese color se corona: la 0 (fila 8 del tablero) para las
+   * blancas y la 7 (fila 1) para las negras, porque cada bando avanza hacia el lado contrario.
+   *
+   * @param color el bando del peón
+   * @return la fila de la matriz donde se corona
+   */
+  private int filaDeCoronacion(Color color){
+    return color == Color.BLANCO ? 0 : 7;
+  }
+
+  /**
+   * Termina una coronación: reemplaza el peón que está en la última fila por una pieza nueva del
+   * mismo color, y recién entonces cierra la jugada (cambia el turno y revisa si la partida
+   * terminó, porque la pieza nueva puede dar jaque o jaque mate).
+   *
+   * <p>Solo se puede escoger dama, torre, alfil o caballo. Si no hay coronación pendiente, o el
+   * tipo es peón, rey o {@code null}, no hace nada y devuelve {@code false}, para que la interfaz
+   * vuelva a preguntar.</p>
+   *
+   * @param tipo la pieza en la que se convierte el peón
+   * @return {@code true} si se coronó; {@code false} si no había coronación o el tipo no vale
+   */
+  public boolean coronacion(TipoPieza tipo){
+    if (coronacionPendiente == null || tipo == null){
+      return false;
+    }
+    Pieza nueva;
+    switch (tipo){
+      case DAMA:    nueva = new Dama(turno);    break;
+      case TORRE:   nueva = new Torre(turno);   break;
+      case ALFIL:   nueva = new Alfil(turno);   break;
+      case CABALLO: nueva = new Caballo(turno); break;
+      default:      return false;
+    }
+    nueva.marcarComoMovida();
+    tablero.colocarPieza(nueva, coronacionPendiente.getFila(), coronacionPendiente.getColumna());
+    coronacionPendiente = null;
     turno = turno.opuesto();
     verificarFinDePartida();
     return true;
