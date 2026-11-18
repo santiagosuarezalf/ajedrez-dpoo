@@ -67,7 +67,7 @@ public class Ajedrez {
      */
     private static TipoPieza pedirPiezaCoronacion(Scanner sc) {
         while (true) {
-            System.out.print("¡Coronación! D (dama), T (torre), A (alfil), C (caballo) o 'salir': ");
+            System.out.print("Coronacion D (dama), T (torre), A (alfil), C (caballo) o 'salir': ");
             String r = sc.nextLine().trim().toLowerCase();
             switch (r) {
                 case "d": return TipoPieza.DAMA;
