@@ -3,9 +3,16 @@
 Diseño y Programación Orientados a Objetos · Universidad Católica de Colombia · 2026-3
 Profesor: Juan Carlos Navarro
 
-Ajedrez para dos jugadores en consola (Java, sin interfaz gráfica).
+Ajedrez para dos jugadores con **interfaz gráfica** (Java Swing), organizado en **MVC**:
 
-📄 **[Avance del corte II](AVANCE.md)**: qué funciona, diagrama de clases y lo que falta.
+| Paquete | Qué tiene |
+|---|---|
+| `modelo` | Las reglas: `Juego`, `Tablero`, `Casilla`, la clase abstracta `Pieza`, sus seis piezas, la interfaz `Movible` y los enum `Color` y `TipoPieza`. No conoce la ventana. |
+| `vista` | `VentanaAjedrez`: el tablero de 8 × 8 botones, el estado de la partida y el botón de nueva partida. |
+| `controlador` | `ControladorJuego` (recibe los clics y se los pasa al modelo) y `Ajedrez` (el `main`). |
+
+📐 **[Diagrama de clases](docs/diagrama-clases.pdf)** (también en [PNG](docs/diagrama-clases.png) y [SVG](docs/diagrama-clases.svg)).
+📄 [Avance del corte II](AVANCE.md) (versión de consola).
 
 ## Equipo
 
@@ -17,22 +24,21 @@ Ajedrez para dos jugadores en consola (Java, sin interfaz gráfica).
 ## Cómo abrirlo
 
 En NetBeans: *File → Open Project* y escoger esta carpeta. Se corre con *Run* (clase principal
-`interfaz.Ajedrez`). Necesita JDK 26, que es el que trae NetBeans.
+`controlador.Ajedrez`). Necesita JDK 26, que es el que trae NetBeans.
 
 ## Cómo se juega
 
-Cada jugada se escribe con la casilla de origen y la de destino, separadas por un espacio:
+- **Primer clic:** una pieza del bando que juega. Se pone en amarillo y sus jugadas legales salen en verde.
+- **Segundo clic:** la casilla a donde va. Si la jugada no es legal, no pasa nada y se vuelve a escoger.
+- **Enroque:** se mueve el rey dos casillas hacia la torre.
+- **Captura al paso:** se mueve el peón en diagonal a la casilla que saltó el peón rival.
+- **Coronación:** al llegar a la última fila sale una ventanita para escoger dama, torre, alfil o caballo.
+- Arriba se ve de quién es el turno y si hay jaque. Al terminar (jaque mate o rey ahogado) sale el resultado.
+- **Nueva partida** reinicia el tablero.
 
-```
-e2 e4
-```
+## Material de estudio
 
-Para el enroque se mueve el rey dos casillas (`e1 g1` corto, `e1 c1` largo). La captura al paso se escribe como
-cualquier otra jugada (`e5 d6`). Cuando un peón llega a la última fila, el programa pregunta la pieza:
-`D` dama, `T` torre, `A` alfil o `C` caballo. Para terminar: `salir`.
-
-En el tablero, las mayúsculas son las piezas blancas y las minúsculas las negras:
-P peón · T torre · C caballo · A alfil · D dama · R rey.
+En [`estudio/`](estudio/): el código explicado línea por línea y el diagrama de clases explicado flecha por flecha.
 
 ## Cómo trabajamos
 

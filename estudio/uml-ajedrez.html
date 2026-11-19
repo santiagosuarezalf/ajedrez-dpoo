@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>
+<title>UML Ajedrez</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: barra de pestañas fija arriba; cada vista es una columna de lectura, y "El plano" usa el ancho completo con el panel de explicación al lado. Todas las clases llevan prefijo u- porque el SVG trae sus propios estilos globales. */
+:root{
+  --bg:#F5F6F2; --surface:#FFFFFF; --ink:#16201B; --muted:#5A6660; --line:#D9DED6;
+  --accent:#1F5C46; --accent-soft:#E2EEE7; --comp:#1F5C46; --agr:#8A5A12; --agr-soft:#F6ECDA;
+  --dep:#3B4F8F; --dep-soft:#E4E9F6; --warn:#A33A1D; --warn-soft:#F8E6DF; --paper:#FFFFFF;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111613; --surface:#18201C; --ink:#E6ECE7; --muted:#9AA79F; --line:#2B3530;
+  --accent:#7CC4A4; --accent-soft:#1D3229; --comp:#7CC4A4; --agr:#E0B062; --agr-soft:#33291A;
+  --dep:#9DB0EC; --dep-soft:#1F2640; --warn:#F09A7C; --warn-soft:#3A2119; --paper:#EEF1EC; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111613; --surface:#18201C; --ink:#E6ECE7; --muted:#9AA79F; --line:#2B3530;
+  --accent:#7CC4A4; --accent-soft:#1D3229; --comp:#7CC4A4; --agr:#E0B062; --agr-soft:#33291A;
+  --dep:#9DB0EC; --dep-soft:#1F2640; --warn:#F09A7C; --warn-soft:#3A2119; --paper:#EEF1EC; color-scheme:dark}
+
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+code,.u-mono{font-family:var(--f-mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.2;margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.u-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.u-top-in,.u-wrap{max-width:1560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.u-top-in{display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;padding-block:10px}
+.u-marca{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.u-marca h1{font-size:21px}
+.u-marca span{color:var(--muted);font-size:13px}
+.u-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.u-tab{border:0;background:none;padding:7px 12px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500}
+.u-tab[aria-selected="true"]{background:var(--accent);color:var(--surface)}
+.u-tab:hover:not([aria-selected="true"]){background:var(--accent-soft);color:var(--ink)}
+
+.u-wrap{padding-block:24px 64px;display:flex;flex-direction:column;gap:22px}
+.u-cita{margin:0;border-left:3px solid var(--accent);padding:2px 0 2px 14px;color:var(--muted);max-width:75ch}
+.u-cita q{font-style:italic;color:var(--ink)}
+.u-lead{color:var(--muted);max-width:75ch;margin:0}
+.u-cards,.u-tabla,.u-nohay,.u-notacion{max-width:1240px}
+section h2{font-size:26px}
+
+/* El plano */
+.u-plano{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.u-hoja{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+.u-hoja svg{display:block;width:100%;height:auto}
+.u-hoja .rel,.u-hoja .clase{cursor:pointer}
+.u-hoja .rel .hit{stroke:transparent;stroke-width:16;fill:none}
+.u-hoja .rel:hover .linea,.u-hoja .rel:hover .punta{stroke:#2a7a5c}
+.u-hoja .rel.on .linea,.u-hoja .rel.on .punta{stroke:#C2410C;stroke-width:3}
+.u-hoja .rel.on polygon.lleno{fill:#C2410C;stroke:#C2410C}
+.u-hoja .rel.on polygon.hueco{stroke:#C2410C;stroke-width:2.4}
+.u-hoja .clase.on .caja{stroke:#C2410C;stroke-width:3}
+.u-hoja .clase:hover .caja{stroke:#2a7a5c;stroke-width:2}
+.u-hoja.atenua .rel:not(.on){opacity:.28}
+.u-panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 100px);overflow:auto}
+.u-panel h3{font-size:20px}
+.u-panel dl{margin:0;display:flex;flex-direction:column;gap:10px}
+.u-panel dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.u-panel dd{margin:2px 0 0}
+.u-vacio{color:var(--muted)}
+.u-lista-rel{display:flex;flex-wrap:wrap;gap:6px}
+
+.u-badge{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px}
+.u-badge.comp{background:var(--accent-soft);color:var(--comp)}
+.u-badge.agr{background:var(--agr-soft);color:var(--agr)}
+.u-badge.dep{background:var(--dep-soft);color:var(--dep)}
+.u-chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 11px;cursor:pointer;font-size:13px}
+.u-chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.u-chip:hover{border-color:var(--accent)}
+
+.u-ref{font-family:var(--f-mono);font-size:.82em;background:var(--accent-soft);color:var(--accent);border:0;border-radius:4px;padding:1px 5px;cursor:help}
+.u-codigo{font-family:var(--f-mono);font-size:12.5px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;overflow-x:auto;white-space:pre;margin:0}
+.u-codigo b{color:var(--muted);font-weight:400;margin-right:10px}
+
+/* Clase por clase */
+.u-selector{display:flex;flex-wrap:wrap;gap:6px}
+.u-cab-clase{display:flex;flex-direction:column;gap:6px}
+.u-cab-clase .u-paq{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.u-tabla{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.u-fila{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.35fr) minmax(0,1fr);border-top:1px solid var(--line)}
+.u-fila:first-child{border-top:0}
+.u-fila>div{padding:12px 14px;min-width:0}
+.u-fila .u-uml{font-family:var(--f-mono);font-size:13px;background:var(--bg);overflow-wrap:anywhere}
+.u-fila .u-uml.est{text-decoration:underline}
+.u-fila .u-que{font-size:14px;display:flex;flex-direction:column;gap:6px}
+.u-fila .u-que .u-nota{color:var(--muted)}
+.u-fila .u-src{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.u-fila.titulo-fila .u-uml{font-weight:600;text-align:center;font-family:var(--f-display);font-size:15px}
+.u-sep{grid-column:1/-1;padding:4px 14px!important;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--bg);font-weight:600}
+
+/* Flechas */
+.u-grupo{display:flex;flex-direction:column;gap:12px}
+.u-grupo>h3{font-size:19px;display:flex;align-items:center;gap:10px}
+.u-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));gap:14px}
+.u-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.u-card-cab{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.u-card-cab h4{margin:0;font:600 16px var(--f-mono)}
+.u-glifo{width:86px;height:20px;flex:none}
+.u-card p{margin:0}
+.u-card .u-k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block}
+.u-trampa{background:var(--warn-soft);border-radius:8px;padding:10px 12px;font-size:14px}
+.u-trampa .u-k{color:var(--warn)}
+.u-btn-plano{align-self:flex-start;border:1px solid var(--line);background:none;border-radius:7px;padding:4px 10px;cursor:pointer;font-size:13px}
+.u-btn-plano:hover{border-color:var(--accent);color:var(--accent)}
+.u-nohay{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:10px}
+.u-nohay div{background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:14px}
+.u-nohay b{font-family:var(--f-mono);font-size:13px;display:block;text-decoration:line-through;text-decoration-color:var(--warn)}
+.u-notacion{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.u-notacion div{padding:8px 12px;border-top:1px solid var(--line);font-size:14px}
+.u-notacion div:nth-child(-n+2){border-top:0}
+.u-notacion div:nth-child(odd){font-family:var(--f-mono);font-size:13px;background:var(--bg);white-space:nowrap}
+
+/* Practicar */
+.u-practica{display:flex;flex-direction:column;gap:14px;max-width:820px}
+.u-tarjeta{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.u-tarjeta .u-n{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.u-tarjeta .u-q{font:600 21px/1.3 var(--f-display)}
+.u-resp{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.u-acciones{display:flex;flex-wrap:wrap;gap:8px}
+.u-btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500}
+.u-btn.prim{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.u-btn:hover{border-color:var(--accent)}
+.u-progreso{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+
+/* Preguntas */
+.u-metodo{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;max-width:75ch}
+details.u-preg{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:880px}
+details.u-preg summary{cursor:pointer;padding:12px 16px;font-weight:600}
+details.u-preg div{padding:0 16px 14px}
+
+@media (max-width:980px){
+  .u-plano{grid-template-columns:minmax(0,1fr)}
+  .u-panel{position:static;max-height:none}
+  .u-hoja svg{min-width:900px}
+}
+@media (max-width:760px){
+  .u-fila{grid-template-columns:minmax(0,1fr)}
+  .u-fila .u-uml{border-bottom:1px dashed var(--line)}
+  .u-tabs{margin-left:0}
+  .u-notacion{grid-template-columns:minmax(0,1fr)}
+  .u-notacion div:nth-child(odd){white-space:normal;border-top:1px solid var(--line)}
+  .u-notacion div:nth-child(even){border-top:0}
+}
+@media (prefers-reduced-motion:no-preference){.u-tarjeta{transition:border-color .2s}}
+
+.u-badge.asoc{background:var(--asoc-soft);color:var(--asoc)}
+.u-badge.her{background:var(--her-soft);color:var(--her)}
+.u-badge.imp{background:var(--imp-soft);color:var(--imp)}
+:root{--asoc:#5B3F86;--asoc-soft:#EEE7F7;--her:#7A2E3B;--her-soft:#F6E5E8;--imp:#2F6E7A;--imp-soft:#E1F0F2}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--asoc:#C3A9EC;--asoc-soft:#2A2238;--her:#EBA3AF;--her-soft:#3A2228;--imp:#8DD0DB;--imp-soft:#1D3236}}
+:root[data-theme="dark"]{--asoc:#C3A9EC;--asoc-soft:#2A2238;--her:#EBA3AF;--her-soft:#3A2228;--imp:#8DD0DB;--imp-soft:#1D3236}
+.u-hoja{overflow:auto;max-height:82vh}
+.u-hoja svg{width:2700px;max-width:none}
+@media (max-width:900px){.u-hoja svg{width:2200px;min-width:0}}
+</style>
+
+<header class="u-top">
+  <div class="u-top-in">
+    <div class="u-marca"><h1>UML Ajedrez</h1><span>diagrama de clases línea por línea · MVC con interfaz gráfica · DPOO corte III</span></div>
+    <nav class="u-tabs" role="tablist" aria-label="Secciones">
+      <button class="u-tab" role="tab" data-v="plano" aria-selected="true">El plano</button>
+      <button class="u-tab" role="tab" data-v="clases" aria-selected="false">Clase por clase</button>
+      <button class="u-tab" role="tab" data-v="flechas" aria-selected="false">Las flechas</button>
+      <button class="u-tab" role="tab" data-v="practicar" aria-selected="false">Practicar</button>
+      <button class="u-tab" role="tab" data-v="preguntas" aria-selected="false">Preguntas de Navarro</button>
+    </nav>
+  </div>
+</header>
+
+<main class="u-wrap">
+  <p class="u-cita"><q>Es como si un arquitecto o un ingeniero no pudiera interpretar un plano. El UML es su plano: usted construye a partir de eso.</q> — Navarro, sustentación del ajedrez, 23 de octubre</p>
+
+  <section id="v-plano" class="u-grupo">
+    <h2>El plano</h2>
+    <p class="u-lead">Toque una flecha o una clase. A la derecha sale qué relación es, cómo se lee en voz alta y en qué línea del código está. El diagrama es el mismo que se entrega en PDF.</p>
+    <div class="u-plano">
+      <div class="u-hoja" id="hoja"><svg id="diagrama-svg" role="img" aria-label="Diagrama de clases del ajedrez MVC" xmlns="http://www.w3.org/2000/svg" width="3580" height="1900" viewBox="0 0 3580 1900">
+<defs>
+<marker id="tri" viewBox="0 0 20 20" refX="19" refY="10" markerWidth="18" markerHeight="18" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L19,10 L1,19 Z" fill="#fff" stroke="#222" stroke-width="1.4"/></marker>
+<marker id="flecha" viewBox="0 0 20 20" refX="19" refY="10" markerWidth="14" markerHeight="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,2 L19,10 L1,18" fill="none" stroke="#222" stroke-width="1.6"/></marker>
+<marker id="rombo" viewBox="0 0 30 16" refX="1" refY="8" markerWidth="26" markerHeight="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,8 L15,1 L29,8 L15,15 Z" fill="#222"/></marker>
+<marker id="romboV" viewBox="0 0 30 16" refX="1" refY="8" markerWidth="26" markerHeight="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,8 L15,1 L29,8 L15,15 Z" fill="#fff" stroke="#222" stroke-width="1.4"/></marker>
+</defs>
+<style>
+text { font-family: Menlo, Consolas, monospace; fill: #111; }
+.mie { font-size: 13px; }
+.nom { font-size: 15px; font-weight: bold; text-anchor: middle; font-family: Helvetica, Arial, sans-serif; }
+.est { font-size: 12px; text-anchor: middle; font-family: Helvetica, Arial, sans-serif; }
+.eti { font-size: 12px; font-family: Helvetica, Arial, sans-serif; fill: #333; }
+.paq { font-size: 15px; font-weight: bold; font-family: Helvetica, Arial, sans-serif; }
+.tit { font-size: 24px; font-weight: bold; font-family: Helvetica, Arial, sans-serif; }
+.sub { font-size: 14px; font-family: Helvetica, Arial, sans-serif; fill: #444; }
+.nota { font-size: 13px; font-family: Helvetica, Arial, sans-serif; fill: #333; }
+.ley { font-size: 13px; font-family: Helvetica, Arial, sans-serif; fill: #444; }
+</style>
+<rect width="3580" height="1900" fill="#fff"/>
+<text x="40" y="44" class="tit">Diagrama de clases — Ajedrez MVC con interfaz gráfica · Diseño y Programación Orientados a Objetos · Corte III</text>
+<text x="40" y="70" class="sub">Juan José Betancourt Quintero (67001968) · Santiago Suárez Alfonso (67001862) · paquetes modelo, vista y controlador</text>
+<rect x="30" y="94" width="150" height="26" fill="#eef4fb" stroke="#555" stroke-width="1.2"/>
+<text x="42" y="112" class="paq">controlador</text>
+<rect x="30" y="120" width="700" height="520" fill="#eef4fb" stroke="#555" stroke-width="1.2"/>
+<rect x="30" y="1154" width="90" height="26" fill="#f1f8ee" stroke="#555" stroke-width="1.2"/>
+<text x="42" y="1172" class="paq">vista</text>
+<rect x="30" y="1180" width="700" height="420" fill="#f1f8ee" stroke="#555" stroke-width="1.2"/>
+<rect x="780" y="94" width="100" height="26" fill="#fbf8f1" stroke="#555" stroke-width="1.2"/>
+<text x="792" y="112" class="paq">modelo</text>
+<rect x="780" y="120" width="2760" height="1560" fill="#fbf8f1" stroke="#555" stroke-width="1.2"/>
+<g class="clase" id="c-Ajedrez">
+<rect class="caja" x="60" y="160" width="248.0" height="68" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="184.0" y="179" class="nom">Ajedrez</text>
+<line x1="60" y1="190" x2="308.0" y2="190" stroke="#222"/>
+<line x1="60" y1="200" x2="308.0" y2="200" stroke="#222"/>
+<text x="72" y="215" class="mie" text-decoration="underline">+ main(args: String[]): void</text>
+</g>
+<g class="clase" id="c-ControladorJuego">
+<rect class="caja" x="60" y="360" width="464.0" height="212" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="292.0" y="379" class="nom">ControladorJuego</text>
+<line x1="60" y1="390" x2="524.0" y2="390" stroke="#222"/>
+<text x="72" y="405" class="mie">- juego: Juego</text>
+<text x="72" y="423" class="mie">- vista: VentanaAjedrez {readOnly}</text>
+<text x="72" y="441" class="mie">- seleccionada: Casilla</text>
+<line x1="60" y1="454" x2="524.0" y2="454" stroke="#222"/>
+<text x="72" y="469" class="mie">+ ControladorJuego(juego: Juego, vista: VentanaAjedrez)</text>
+<text x="72" y="487" class="mie">+ actionPerformed(e: ActionEvent): void</text>
+<text x="72" y="505" class="mie">- casillaPulsada(fila: int, columna: int): void</text>
+<text x="72" y="523" class="mie">- nuevaPartida(): void</text>
+<text x="72" y="541" class="mie">- actualizarVista(): void</text>
+<text x="72" y="559" class="mie">- textoEstado(): String</text>
+</g>
+<g class="clase" id="c-ActionListener">
+<rect class="caja" x="380" y="720" width="336.0" height="96" fill="#eef1fb" stroke="#222" stroke-width="1.4"/>
+<text x="548.0" y="736" class="est">«interface»</text>
+<text x="548.0" y="754" class="nom" font-style="italic">ActionListener</text>
+<text x="548.0" y="769" class="est">(java.awt.event)</text>
+<line x1="380" y1="778" x2="716.0" y2="778" stroke="#222"/>
+<line x1="380" y1="788" x2="716.0" y2="788" stroke="#222"/>
+<text x="392" y="803" class="mie" font-style="italic">+ actionPerformed(e: ActionEvent): void</text>
+</g>
+<g class="clase" id="c-JFrame">
+<rect class="caja" x="220" y="960" width="200" height="64" fill="#f2f2f2" stroke="#222" stroke-width="1.4"/>
+<text x="320.0" y="979" class="nom">JFrame</text>
+<text x="320.0" y="994" class="est">(javax.swing)</text>
+<line x1="220" y1="1004" x2="420" y2="1004" stroke="#222"/>
+<line x1="220" y1="1014" x2="420" y2="1014" stroke="#222"/>
+</g>
+<g class="clase" id="c-VentanaAjedrez">
+<rect class="caja" x="60" y="1230" width="480.0" height="320" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="300.0" y="1249" class="nom">VentanaAjedrez</text>
+<line x1="60" y1="1260" x2="540.0" y2="1260" stroke="#222"/>
+<text x="72" y="1275" class="mie" text-decoration="underline">- CLARA: java.awt.Color {readOnly}</text>
+<text x="72" y="1293" class="mie" text-decoration="underline">- OSCURA: java.awt.Color {readOnly}</text>
+<text x="72" y="1311" class="mie" text-decoration="underline">- SELECCION: java.awt.Color {readOnly}</text>
+<text x="72" y="1329" class="mie" text-decoration="underline">- DESTINO: java.awt.Color {readOnly}</text>
+<text x="72" y="1347" class="mie">- botones: JButton[8][8] {readOnly}</text>
+<text x="72" y="1365" class="mie">- lblEstado: JLabel {readOnly}</text>
+<text x="72" y="1383" class="mie">- btnNuevaPartida: JButton {readOnly}</text>
+<line x1="60" y1="1396" x2="540.0" y2="1396" stroke="#222"/>
+<text x="72" y="1411" class="mie">+ VentanaAjedrez()</text>
+<text x="72" y="1429" class="mie">+ agregarControlador(controlador: ActionListener): void</text>
+<text x="72" y="1447" class="mie">+ mostrarTablero(tablero: Tablero, seleccionada: Casilla,</text>
+<text x="72" y="1465" class="mie">      destinos: List&lt;Casilla&gt;): void</text>
+<text x="72" y="1483" class="mie">+ mostrarEstado(texto: String): void</text>
+<text x="72" y="1501" class="mie">+ mostrarMensaje(texto: String): void</text>
+<text x="72" y="1519" class="mie">+ pedirPiezaCoronacion(): TipoPieza</text>
+<text x="72" y="1537" class="mie">- simbolo(pieza: Pieza): String</text>
+</g>
+<g class="clase" id="c-Juego">
+<rect class="caja" x="820" y="160" width="536.0" height="500" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1088.0" y="179" class="nom">Juego</text>
+<line x1="820" y1="190" x2="1356.0" y2="190" stroke="#222"/>
+<text x="832" y="205" class="mie">- tablero: Tablero {readOnly}</text>
+<text x="832" y="223" class="mie">- turno: Color</text>
+<text x="832" y="241" class="mie">- terminado: boolean</text>
+<text x="832" y="259" class="mie">- resultado: String</text>
+<text x="832" y="277" class="mie">- coronacionPendiente: Casilla</text>
+<text x="832" y="295" class="mie">- objetivoAlPaso: Casilla</text>
+<line x1="820" y1="308" x2="1356.0" y2="308" stroke="#222"/>
+<text x="832" y="323" class="mie">+ Juego()</text>
+<text x="832" y="341" class="mie">+ getTablero(): Tablero</text>
+<text x="832" y="359" class="mie">+ getTurno(): Color</text>
+<text x="832" y="377" class="mie">+ isTerminado(): boolean</text>
+<text x="832" y="395" class="mie">+ getResultado(): String</text>
+<text x="832" y="413" class="mie">+ hayCoronacionPendiente(): boolean</text>
+<text x="832" y="431" class="mie">+ mover(origen: Casilla, destino: Casilla): boolean</text>
+<text x="832" y="449" class="mie">- esCapturaAlPaso(origen: Casilla, destino: Casilla): boolean</text>
+<text x="832" y="467" class="mie">- hacerCapturaAlPaso(origen: Casilla, destino: Casilla): boolean</text>
+<text x="832" y="485" class="mie">- filaDeCoronacion(color: Color): int</text>
+<text x="832" y="503" class="mie">+ coronacion(tipo: TipoPieza): boolean</text>
+<text x="832" y="521" class="mie">- dejaReyEnJaque(origen: Casilla, destino: Casilla): boolean</text>
+<text x="832" y="539" class="mie">+ estaEnJaque(color: Color): boolean</text>
+<text x="832" y="557" class="mie">- buscarRey(color: Color): Casilla</text>
+<text x="832" y="575" class="mie">+ hayMovimientosLegales(): boolean</text>
+<text x="832" y="593" class="mie">- verificarFinDePartida(): void</text>
+<text x="832" y="611" class="mie">- esEnroqueValido(origen: Casilla, destino: Casilla): boolean</text>
+<text x="832" y="629" class="mie">+ intentarEnroque(origen: Casilla, destino: Casilla): boolean</text>
+<text x="832" y="647" class="mie">+ movimientosLegales(origen: Casilla): List&lt;Casilla&gt;</text>
+</g>
+<g class="clase" id="c-Tablero">
+<rect class="caja" x="1700" y="160" width="504.0" height="176" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1952.0" y="179" class="nom">Tablero</text>
+<line x1="1700" y1="190" x2="2204.0" y2="190" stroke="#222"/>
+<text x="1712" y="205" class="mie">- casillas: Casilla[8][8] {readOnly}</text>
+<line x1="1700" y1="218" x2="2204.0" y2="218" stroke="#222"/>
+<text x="1712" y="233" class="mie">+ Tablero()</text>
+<text x="1712" y="251" class="mie">+ getCasilla(f: int, c: int): Casilla</text>
+<text x="1712" y="269" class="mie">+ colocarPieza(pieza: Pieza, f: int, c: int): void</text>
+<text x="1712" y="287" class="mie">+ moverPieza(origen: Casilla, destino: Casilla): void</text>
+<text x="1712" y="305" class="mie">+ configurarInicial(): void</text>
+<text x="1712" y="323" class="mie">+ casillaAtacada(casilla: Casilla, porQuien: Color): boolean</text>
+</g>
+<g class="clase" id="c-Casilla">
+<rect class="caja" x="2600" y="160" width="296.0" height="230" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="2748.0" y="179" class="nom">Casilla</text>
+<line x1="2600" y1="190" x2="2896.0" y2="190" stroke="#222"/>
+<text x="2612" y="205" class="mie">- fila: int {readOnly}</text>
+<text x="2612" y="223" class="mie">- columna: int {readOnly}</text>
+<text x="2612" y="241" class="mie">- pieza: Pieza</text>
+<line x1="2600" y1="254" x2="2896.0" y2="254" stroke="#222"/>
+<text x="2612" y="269" class="mie">+ Casilla(fila: int, columna: int)</text>
+<text x="2612" y="287" class="mie">+ getFila(): int</text>
+<text x="2612" y="305" class="mie">+ getColumna(): int</text>
+<text x="2612" y="323" class="mie">+ getPieza(): Pieza</text>
+<text x="2612" y="341" class="mie">+ setPieza(pieza: Pieza): void</text>
+<text x="2612" y="359" class="mie">+ estaVacia(): boolean</text>
+<text x="2612" y="377" class="mie">+ toString(): String</text>
+</g>
+<g class="clase" id="c-Color">
+<rect class="caja" x="820" y="880" width="170" height="118" fill="#fdf6e3" stroke="#222" stroke-width="1.4"/>
+<text x="905.0" y="896" class="est">«enumeration»</text>
+<text x="905.0" y="914" class="nom">Color</text>
+<line x1="820" y1="924" x2="990" y2="924" stroke="#222"/>
+<text x="832" y="939" class="mie">BLANCO</text>
+<text x="832" y="957" class="mie">NEGRO</text>
+<line x1="820" y1="970" x2="990" y2="970" stroke="#222"/>
+<text x="832" y="985" class="mie">+ opuesto(): Color</text>
+</g>
+<g class="clase" id="c-TipoPieza">
+<rect class="caja" x="820" y="1040" width="170" height="172" fill="#fdf6e3" stroke="#222" stroke-width="1.4"/>
+<text x="905.0" y="1056" class="est">«enumeration»</text>
+<text x="905.0" y="1074" class="nom">TipoPieza</text>
+<line x1="820" y1="1084" x2="990" y2="1084" stroke="#222"/>
+<text x="832" y="1099" class="mie">PEON</text>
+<text x="832" y="1117" class="mie">TORRE</text>
+<text x="832" y="1135" class="mie">CABALLO</text>
+<text x="832" y="1153" class="mie">ALFIL</text>
+<text x="832" y="1171" class="mie">DAMA</text>
+<text x="832" y="1189" class="mie">REY</text>
+<line x1="820" y1="1202" x2="990" y2="1202" stroke="#222"/>
+</g>
+<g class="clase" id="c-Pieza">
+<rect class="caja" x="1350" y="800" width="608.0" height="338" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1654.0" y="819" class="nom" font-style="italic">Pieza</text>
+<line x1="1350" y1="830" x2="1958.0" y2="830" stroke="#222"/>
+<text x="1362" y="845" class="mie"># color: Color</text>
+<text x="1362" y="863" class="mie"># casilla: Casilla</text>
+<text x="1362" y="881" class="mie"># seHaMovido: boolean</text>
+<line x1="1350" y1="894" x2="1958.0" y2="894" stroke="#222"/>
+<text x="1362" y="909" class="mie">+ Pieza(color: Color)</text>
+<text x="1362" y="927" class="mie">+ getColor(): Color</text>
+<text x="1362" y="945" class="mie">+ getCasilla(): Casilla</text>
+<text x="1362" y="963" class="mie">+ setCasilla(casilla: Casilla): void</text>
+<text x="1362" y="981" class="mie">+ seHaMovido(): boolean</text>
+<text x="1362" y="999" class="mie">+ marcarComoMovida(): void</text>
+<text x="1362" y="1017" class="mie">+ setSeHaMovido(v: boolean): void</text>
+<text x="1362" y="1035" class="mie" font-style="italic">+ getTipo(): TipoPieza</text>
+<text x="1362" y="1053" class="mie" font-style="italic">+ getMovimientosPosibles(tablero: Tablero): List&lt;Casilla&gt;</text>
+<text x="1362" y="1071" class="mie">+ casillasAtacadas(t: Tablero): List&lt;Casilla&gt;</text>
+<text x="1362" y="1089" class="mie">+ toString(): String</text>
+<text x="1362" y="1107" class="mie"># agregarSiValida(lista: List&lt;Casilla&gt;, t: Tablero, f: int, c: int): void</text>
+<text x="1362" y="1125" class="mie"># deslizar(lista: List&lt;Casilla&gt;, t: Tablero, df: int, dc: int): void</text>
+</g>
+<g class="clase" id="c-Movible">
+<rect class="caja" x="2950" y="930" width="480.0" height="100" fill="#eef1fb" stroke="#222" stroke-width="1.4"/>
+<text x="3190.0" y="946" class="est">«interface»</text>
+<text x="3190.0" y="964" class="nom" font-style="italic">Movible</text>
+<line x1="2950" y1="974" x2="3430.0" y2="974" stroke="#222"/>
+<line x1="2950" y1="984" x2="3430.0" y2="984" stroke="#222"/>
+<text x="2962" y="999" class="mie" font-style="italic">+ getMovimientosPosibles(tablero: Tablero): List&lt;Casilla&gt;</text>
+<text x="2962" y="1017" class="mie" font-style="italic">+ casillasAtacadas(tablero: Tablero): List&lt;Casilla&gt;</text>
+</g>
+<g class="clase" id="c-Peon">
+<rect class="caja" x="820" y="1520" width="432.0" height="122" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1036.0" y="1539" class="nom">Peon</text>
+<line x1="820" y1="1550" x2="1252.0" y2="1550" stroke="#222"/>
+<line x1="820" y1="1560" x2="1252.0" y2="1560" stroke="#222"/>
+<text x="832" y="1575" class="mie">+ Peon(color: Color)</text>
+<text x="832" y="1593" class="mie">+ getTipo(): TipoPieza</text>
+<text x="832" y="1611" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+<text x="832" y="1629" class="mie">+ casillasAtacadas(t: Tablero): List&lt;Casilla&gt;</text>
+</g>
+<g class="clase" id="c-Torre">
+<rect class="caja" x="1270.0" y="1520" width="432.0" height="104" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1486.0" y="1539" class="nom">Torre</text>
+<line x1="1270.0" y1="1550" x2="1702.0" y2="1550" stroke="#222"/>
+<line x1="1270.0" y1="1560" x2="1702.0" y2="1560" stroke="#222"/>
+<text x="1282.0" y="1575" class="mie">+ Torre(color: Color)</text>
+<text x="1282.0" y="1593" class="mie">+ getTipo(): TipoPieza</text>
+<text x="1282.0" y="1611" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+</g>
+<g class="clase" id="c-Caballo">
+<rect class="caja" x="1720.0" y="1520" width="432.0" height="104" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="1936.0" y="1539" class="nom">Caballo</text>
+<line x1="1720.0" y1="1550" x2="2152.0" y2="1550" stroke="#222"/>
+<line x1="1720.0" y1="1560" x2="2152.0" y2="1560" stroke="#222"/>
+<text x="1732.0" y="1575" class="mie">+ Caballo(color: Color)</text>
+<text x="1732.0" y="1593" class="mie">+ getTipo(): TipoPieza</text>
+<text x="1732.0" y="1611" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+</g>
+<g class="clase" id="c-Alfil">
+<rect class="caja" x="2170.0" y="1520" width="432.0" height="104" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="2386.0" y="1539" class="nom">Alfil</text>
+<line x1="2170.0" y1="1550" x2="2602.0" y2="1550" stroke="#222"/>
+<line x1="2170.0" y1="1560" x2="2602.0" y2="1560" stroke="#222"/>
+<text x="2182.0" y="1575" class="mie">+ Alfil(color: Color)</text>
+<text x="2182.0" y="1593" class="mie">+ getTipo(): TipoPieza</text>
+<text x="2182.0" y="1611" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+</g>
+<g class="clase" id="c-Dama">
+<rect class="caja" x="2620.0" y="1520" width="432.0" height="104" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="2836.0" y="1539" class="nom">Dama</text>
+<line x1="2620.0" y1="1550" x2="3052.0" y2="1550" stroke="#222"/>
+<line x1="2620.0" y1="1560" x2="3052.0" y2="1560" stroke="#222"/>
+<text x="2632.0" y="1575" class="mie">+ Dama(color: Color)</text>
+<text x="2632.0" y="1593" class="mie">+ getTipo(): TipoPieza</text>
+<text x="2632.0" y="1611" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+</g>
+<g class="clase" id="c-Rey">
+<rect class="caja" x="3070.0" y="1520" width="432.0" height="104" fill="#ffffff" stroke="#222" stroke-width="1.4"/>
+<text x="3286.0" y="1539" class="nom">Rey</text>
+<line x1="3070.0" y1="1550" x2="3502.0" y2="1550" stroke="#222"/>
+<line x1="3070.0" y1="1560" x2="3502.0" y2="1560" stroke="#222"/>
+<text x="3082.0" y="1575" class="mie">+ Rey(color: Color)</text>
+<text x="3082.0" y="1593" class="mie">+ getTipo(): TipoPieza</text>
+<text x="3082.0" y="1611" class="mie">+ getMovimientosPosibles(t: Tablero): List&lt;Casilla&gt;</text>
+</g>
+<g class="rel" id="r-Ajedrez-ControladorJuego">
+<polyline class="linea" points="120,228 120,360" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="8,6" marker-end="url(#flecha)"/>
+<text x="130" y="268" class="eti">«create»</text>
+</g>
+<g class="rel" id="r-Ajedrez-Juego">
+<polyline class="linea" points="308.0,200 820,200" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="8,6" marker-end="url(#flecha)"/>
+<text x="328.0" y="192" class="eti">«create»</text>
+</g>
+<g class="rel" id="r-Ajedrez-VentanaAjedrez">
+<polyline class="linea" points="60,190 45,190 45,1260 60,1260" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="8,6" marker-end="url(#flecha)"/>
+<text x="50" y="1100" class="eti">«create»</text>
+</g>
+<g class="rel" id="r-ControladorJuego-ActionListener">
+<polyline class="linea" points="460,572 460,720" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="8,6" marker-end="url(#tri)"/>
+<text x="470" y="622" class="eti">implementa</text>
+</g>
+<g class="rel" id="r-ControladorJuego-Juego">
+<polyline class="linea" points="524.0,400 820,400" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#flecha)"/>
+<text x="808" y="392" class="eti" text-anchor="end">-juego</text>
+<text x="808" y="418" class="eti" text-anchor="end">1</text>
+</g>
+<g class="rel" id="r-ControladorJuego-VentanaAjedrez">
+<polyline class="linea" points="120,572 120,1230" fill="none" stroke="#222" stroke-width="1.4" marker-start="url(#romboV)" marker-end="url(#flecha)"/>
+<text x="130" y="1200" class="eti">-vista</text>
+<text x="130" y="1218" class="eti">1</text>
+</g>
+<g class="rel" id="r-ControladorJuego-Casilla">
+<polyline class="linea" points="480,360 480,135 2748.0,135 2748.0,160" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#flecha)"/>
+<text x="2756.0" y="134" class="eti">-seleccionada</text>
+<text x="2756.0" y="152" class="eti">0..1</text>
+</g>
+<g class="rel" id="r-VentanaAjedrez-JFrame">
+<polyline class="linea" points="320,1230 320,1024" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#tri)"/>
+</g>
+<g class="rel" id="r-VentanaAjedrez-ActionListener">
+<polyline class="linea" points="500,1230 500,816" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="8,6" marker-end="url(#flecha)"/>
+<text x="510" y="856" class="eti">«parameter»</text>
+</g>
+<g class="rel" id="r-VentanaAjedrez-modelo">
+<polyline class="linea" points="540.0,1430 780,1430" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="8,6" marker-end="url(#flecha)"/>
+<text x="552.0" y="1420" class="eti">«parameter» / «return»</text>
+</g>
+<g class="rel" id="r-Juego-Tablero">
+<polyline class="linea" points="1356.0,200 1700,200" fill="none" stroke="#222" stroke-width="1.4" marker-start="url(#rombo)" marker-end="url(#flecha)"/>
+<text x="1386.0" y="222" class="eti">1</text>
+<text x="1688" y="192" class="eti" text-anchor="end">-tablero</text>
+<text x="1688" y="222" class="eti" text-anchor="end">1</text>
+</g>
+<g class="rel" id="r-Tablero-Casilla">
+<polyline class="linea" points="2204.0,200 2600,200" fill="none" stroke="#222" stroke-width="1.4" marker-start="url(#rombo)" marker-end="url(#flecha)"/>
+<text x="2234.0" y="222" class="eti">1</text>
+<text x="2588" y="192" class="eti" text-anchor="end">-casillas</text>
+<text x="2588" y="222" class="eti" text-anchor="end">64</text>
+</g>
+<g class="rel" id="r-Casilla-Pieza">
+<polyline class="linea" points="2748.0,390 2748.0,840 1958.0,840" fill="none" stroke="#222" stroke-width="1.4" marker-start="url(#romboV)" marker-end="url(#flecha)"/>
+<text x="2758.0" y="430" class="eti">0..1  #casilla</text>
+<text x="1972.0" y="832" class="eti">-pieza 0..1</text>
+</g>
+<g class="rel" id="r-Juego-Casilla">
+<polyline class="linea" points="1276.0,660 1276.0,700 2660,700 2660,390" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#flecha)"/>
+<text x="1286.0" y="692" class="eti">-coronacionPendiente 0..1 · -objetivoAlPaso 0..1</text>
+</g>
+<g class="rel" id="r-Juego-Color">
+<polyline class="linea" points="880,660 880,880" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#flecha)"/>
+<text x="890" y="854" class="eti">-turno</text>
+<text x="890" y="872" class="eti">1</text>
+</g>
+<g class="rel" id="r-Pieza-Color">
+<polyline class="linea" points="1350,950 990,950" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#flecha)"/>
+<text x="1002" y="942" class="eti">#color 1</text>
+</g>
+<g class="rel" id="r-Pieza-TipoPieza">
+<polyline class="linea" points="1350,1090 990,1090" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="8,6" marker-end="url(#flecha)"/>
+<text x="1002" y="1082" class="eti">«return»</text>
+</g>
+<g class="rel" id="r-Pieza-Movible">
+<polyline class="linea" points="1958.0,980.0 2950,980.0" fill="none" stroke="#222" stroke-width="1.4" stroke-dasharray="8,6" marker-end="url(#tri)"/>
+<text x="1978.0" y="972.0" class="eti">implementa</text>
+</g>
+<g class="rel" id="r-Piezas-Pieza">
+<polyline class="linea" points="1654.0,1470 1654.0,1138" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#tri)"/>
+<polyline class="linea" points="1036.0,1470 3286.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
+<polyline class="linea" points="1036.0,1520 1036.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
+<polyline class="linea" points="1486.0,1520 1486.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
+<polyline class="linea" points="1936.0,1520 1936.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
+<polyline class="linea" points="2386.0,1520 2386.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
+<polyline class="linea" points="2836.0,1520 2836.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
+<polyline class="linea" points="3286.0,1520 3286.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
+</g>
+<text x="40" y="1720" class="nota">Dependencias resumidas (no se dibuja una flecha por cada una para no enredar el diagrama):</text>
+<text x="40" y="1742" class="nota">· La flecha punteada de VentanaAjedrez al paquete modelo: usa Tablero, Casilla y Pieza como parámetros (mostrarTablero, simbolo) y devuelve TipoPieza (pedirPiezaCoronacion). Solo lee: nunca cambia el modelo.</text>
+<text x="40" y="1764" class="nota">· ControladorJuego usa Pieza, TipoPieza, Color y ActionEvent como variables locales o parámetros (casillaPulsada, textoEstado, actionPerformed).</text>
+<text x="40" y="1786" class="nota">· Tablero «create» las seis piezas en configurarInicial().   · Juego «create» Dama, Torre, Alfil o Caballo en coronacion(tipo: TipoPieza).</text>
+<text x="40" y="1870" class="ley">+ público · − privado · # protegido · cursiva = abstracto · subrayado = estático (static) · {readOnly} = final · ◆ composición (el todo crea la parte) · ◇ agregación (la recibe ya creada) · ▷ continua = herencia · ▷ punteada = implementa · → asociación (atributo) · ⇢ dependencia (parámetro, variable local o retorno)</text>
+</svg>
+</div>
+      <aside class="u-panel" id="panel" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section id="v-clases" class="u-grupo" hidden>
+    <h2>Clase por clase</h2>
+    <p class="u-lead">Cada renglón de cada caja del diagrama, leído símbolo por símbolo, con la línea de código de donde sale. Así se comprueba que el diagrama dice exactamente lo que hace el código.</p>
+    <div class="u-selector" id="selector"></div>
+    <div id="clase"></div>
+  </section>
+
+  <section id="v-flechas" class="u-grupo" hidden>
+    <h2>Las flechas</h2>
+    <p class="u-lead">Las 19 relaciones del diagrama. Para cada una: cómo se dice, dónde está en el código y por qué es ese tipo y no otro. Al final, las flechas que <em>no</em> hay y la notación completa.</p>
+    <div id="lista-flechas" class="u-grupo"></div>
+  </section>
+
+  <section id="v-practicar" class="u-grupo" hidden>
+    <h2>Practicar</h2>
+    <p class="u-lead">Como dijo Navarro: tomar el diagrama y, por cada flecha, decir qué relación es, por qué y en qué línea. Diga la respuesta en voz alta <em>antes</em> de mostrarla.</p>
+    <div class="u-practica" id="practica"></div>
+  </section>
+
+  <section id="v-preguntas" class="u-grupo" hidden>
+    <h2>Preguntas de Navarro</h2>
+    <p class="u-cita"><q>El diagrama está muy bien. El problema es que no tienen idea de qué es.</q> — sobre el ajedrez. Y su recomendación: <q>toca leer y estudiar</q>; las herramientas que generan el diagrama desde el código <q>se inventan relaciones que no existen</q>.</p>
+    <h3>Cómo leer cualquier diagrama de clases</h3>
+    <ol class="u-metodo" id="metodo"></ol>
+    <h3>Lo que puede preguntar</h3>
+    <div id="lista-preguntas" class="u-grupo"></div>
+  </section>
+</main>
+
+<script>
+const D = {"clases": [{"n": "Ajedrez", "paq": "controlador", "resumen": "La clase principal. Solo tiene el main, que crea el modelo, la vista y el controlador. No tiene atributos: la franja del medio va vacía.", "decl": "public class Ajedrez", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "+ main(args: String[]): void", "ln": 21, "lectura": "`+` público · método `main` · recibe `args: String[]` · no devuelve nada (`void`) · subrayado = `static`", "nota": "", "codigo": "public static void main(String[] args) {", "est": true, "enum": false}]}, {"n": "ControladorJuego", "paq": "controlador", "resumen": "El controlador del MVC. Sus tres atributos son de clases nuestras, por eso salen tres flechas continuas: `-juego`, `-vista` y `-seleccionada`. Además implementa ActionListener.", "decl": "public class ControladorJuego implements ActionListener", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "- juego: Juego", "ln": 33, "lectura": "`-` privado · atributo `juego` de tipo `Juego` · sin {readOnly}: puede cambiar", "nota": "Sale la flecha de asociación hacia Juego con el rótulo `-juego`. Sin {readOnly} porque «Nueva partida» lo reemplaza.", "codigo": "private Juego juego;", "est": false, "enum": false}, {"uml": "- vista: VentanaAjedrez {readOnly}", "ln": 35, "lectura": "`-` privado · atributo `vista` de tipo `VentanaAjedrez` · `{readOnly}` = final, no cambia", "nota": "Sale la flecha de agregación hacia VentanaAjedrez con el rótulo `-vista`. {readOnly} porque es `final`.", "codigo": "private final VentanaAjedrez vista;", "est": false, "enum": false}, {"uml": "- seleccionada: Casilla", "ln": 37, "lectura": "`-` privado · atributo `seleccionada` de tipo `Casilla` · sin {readOnly}: puede cambiar", "nota": "Sale la flecha de asociación hacia Casilla, 0..1, con el rótulo `-seleccionada`.", "codigo": "private Casilla seleccionada;", "est": false, "enum": false}, {"uml": "+ ControladorJuego(juego: Juego, vista: VentanaAjedrez)", "ln": 46, "lectura": "`+` público · constructor `ControladorJuego`: se llama como la clase y no lleva tipo de retorno · recibe `juego: Juego, vista: VentanaAjedrez`", "nota": "", "codigo": "public ControladorJuego(Juego juego, VentanaAjedrez vista) {", "est": false, "enum": false}, {"uml": "+ actionPerformed(e: ActionEvent): void", "ln": 62, "lectura": "`+` público · método `actionPerformed` · recibe `e: ActionEvent` · no devuelve nada (`void`)", "nota": "Es el método que exige ActionListener. En la caja de ActionListener sale en cursiva (abstracto); aquí no, porque aquí sí tiene código.", "codigo": "public void actionPerformed(ActionEvent e) {", "est": false, "enum": false}, {"uml": "- casillaPulsada(fila: int, columna: int): void", "ln": 86, "lectura": "`-` privado · método `casillaPulsada` · recibe `fila: int, columna: int` · no devuelve nada (`void`)", "nota": "", "codigo": "private void casillaPulsada(int fila, int columna) {", "est": false, "enum": false}, {"uml": "- nuevaPartida(): void", "ln": 111, "lectura": "`-` privado · método `nuevaPartida` · no recibe nada · no devuelve nada (`void`)", "nota": "", "codigo": "private void nuevaPartida() {", "est": false, "enum": false}, {"uml": "- actualizarVista(): void", "ln": 121, "lectura": "`-` privado · método `actualizarVista` · no recibe nada · no devuelve nada (`void`)", "nota": "", "codigo": "private void actualizarVista() {", "est": false, "enum": false}, {"uml": "- textoEstado(): String", "ln": 135, "lectura": "`-` privado · método `textoEstado` · no recibe nada · devuelve `String`", "nota": "", "codigo": "private String textoEstado() {", "est": false, "enum": false}]}, {"n": "VentanaAjedrez", "paq": "vista", "resumen": "La vista. Hereda de JFrame. Sus atributos son de Swing (JButton, JLabel) o colores de java.awt: ninguno es de una clase nuestra, por eso no salen flechas continuas, solo dependencias.", "decl": "public class VentanaAjedrez extends JFrame", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "- CLARA: java.awt.Color {readOnly}", "ln": 33, "lectura": "`-` privado · atributo `CLARA` de tipo `java.awt.Color` · `{readOnly}` = final, no cambia · subrayado = `static`", "nota": "Subrayado porque es `static`. `java.awt.Color` y no solo `Color`, para no confundirlo con el enum `modelo.Color`.", "codigo": "private static final Color CLARA = new Color(240, 217, 181);", "est": true, "enum": false}, {"uml": "- OSCURA: java.awt.Color {readOnly}", "ln": 35, "lectura": "`-` privado · atributo `OSCURA` de tipo `java.awt.Color` · `{readOnly}` = final, no cambia · subrayado = `static`", "nota": "", "codigo": "private static final Color OSCURA = new Color(181, 136, 99);", "est": true, "enum": false}, {"uml": "- SELECCION: java.awt.Color {readOnly}", "ln": 37, "lectura": "`-` privado · atributo `SELECCION` de tipo `java.awt.Color` · `{readOnly}` = final, no cambia · subrayado = `static`", "nota": "", "codigo": "private static final Color SELECCION = new Color(246, 246, 105);", "est": true, "enum": false}, {"uml": "- DESTINO: java.awt.Color {readOnly}", "ln": 39, "lectura": "`-` privado · atributo `DESTINO` de tipo `java.awt.Color` · `{readOnly}` = final, no cambia · subrayado = `static`", "nota": "", "codigo": "private static final Color DESTINO = new Color(130, 190, 110);", "est": true, "enum": false}, {"uml": "- botones: JButton[8][8] {readOnly}", "ln": 42, "lectura": "`-` privado · atributo `botones` de tipo `JButton[8][8]` · `{readOnly}` = final, no cambia", "nota": "JButton es de Java: queda como atributo, sin flecha. `[8][8]` dice que es una matriz.", "codigo": "private final JButton[][] botones;", "est": false, "enum": false}, {"uml": "- lblEstado: JLabel {readOnly}", "ln": 44, "lectura": "`-` privado · atributo `lblEstado` de tipo `JLabel` · `{readOnly}` = final, no cambia", "nota": "", "codigo": "private final JLabel lblEstado;", "est": false, "enum": false}, {"uml": "- btnNuevaPartida: JButton {readOnly}", "ln": 46, "lectura": "`-` privado · atributo `btnNuevaPartida` de tipo `JButton` · `{readOnly}` = final, no cambia", "nota": "", "codigo": "private final JButton btnNuevaPartida;", "est": false, "enum": false}, {"uml": "+ VentanaAjedrez()", "ln": 53, "lectura": "`+` público · constructor `VentanaAjedrez`: se llama como la clase y no lleva tipo de retorno · no recibe nada", "nota": "", "codigo": "public VentanaAjedrez() {", "est": false, "enum": false}, {"uml": "+ agregarControlador(controlador: ActionListener): void", "ln": 94, "lectura": "`+` público · método `agregarControlador` · recibe `controlador: ActionListener` · no devuelve nada (`void`)", "nota": "El parámetro es un ActionListener: de aquí sale la dependencia «parameter» hacia ActionListener.", "codigo": "public void agregarControlador(ActionListener controlador) {", "est": false, "enum": false}, {"uml": "+ mostrarTablero(tablero: Tablero, seleccionada: Casilla, destinos: List<Casilla>): void", "ln": 111, "lectura": "`+` público · método `mostrarTablero` · recibe `tablero: Tablero, seleccionada: Casilla, destinos: List<Casilla>` · no devuelve nada (`void`)", "nota": "Los parámetros Tablero y Casilla son del modelo: de aquí sale la dependencia hacia el paquete modelo.", "codigo": "public void mostrarTablero(Tablero tablero, Casilla seleccionada, List<Casilla> destinos) {", "est": false, "enum": false}, {"uml": "+ mostrarEstado(texto: String): void", "ln": 135, "lectura": "`+` público · método `mostrarEstado` · recibe `texto: String` · no devuelve nada (`void`)", "nota": "", "codigo": "public void mostrarEstado(String texto) {", "est": false, "enum": false}, {"uml": "+ mostrarMensaje(texto: String): void", "ln": 144, "lectura": "`+` público · método `mostrarMensaje` · recibe `texto: String` · no devuelve nada (`void`)", "nota": "", "codigo": "public void mostrarMensaje(String texto) {", "est": false, "enum": false}, {"uml": "+ pedirPiezaCoronacion(): TipoPieza", "ln": 154, "lectura": "`+` público · método `pedirPiezaCoronacion` · no recibe nada · devuelve `TipoPieza`", "nota": "Devuelve un TipoPieza: dependencia «return» hacia el modelo.", "codigo": "public TipoPieza pedirPiezaCoronacion() {", "est": false, "enum": false}, {"uml": "- simbolo(pieza: Pieza): String", "ln": 176, "lectura": "`-` privado · método `simbolo` · recibe `pieza: Pieza` · devuelve `String`", "nota": "", "codigo": "private String simbolo(Pieza pieza) {", "est": false, "enum": false}]}, {"n": "Juego", "paq": "modelo", "resumen": "El árbitro del modelo. Atributos que dan flechas: `-tablero` (composición), `-turno` (asociación con Color) y `-coronacionPendiente` / `-objetivoAlPaso` (asociación con Casilla).", "decl": "public class Juego", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "- tablero: Tablero {readOnly}", "ln": 17, "lectura": "`-` privado · atributo `tablero` de tipo `Tablero` · `{readOnly}` = final, no cambia", "nota": "Sale la flecha de composición hacia Tablero con el rótulo `-tablero`.", "codigo": "private final Tablero tablero;", "est": false, "enum": false}, {"uml": "- turno: Color", "ln": 19, "lectura": "`-` privado · atributo `turno` de tipo `Color` · sin {readOnly}: puede cambiar", "nota": "Sale la flecha de asociación hacia Color con el rótulo `-turno`.", "codigo": "private Color turno;", "est": false, "enum": false}, {"uml": "- terminado: boolean", "ln": 21, "lectura": "`-` privado · atributo `terminado` de tipo `boolean` · sin {readOnly}: puede cambiar", "nota": "", "codigo": "private boolean terminado;", "est": false, "enum": false}, {"uml": "- resultado: String", "ln": 23, "lectura": "`-` privado · atributo `resultado` de tipo `String` · sin {readOnly}: puede cambiar", "nota": "", "codigo": "private String resultado;", "est": false, "enum": false}, {"uml": "- coronacionPendiente: Casilla", "ln": 29, "lectura": "`-` privado · atributo `coronacionPendiente` de tipo `Casilla` · sin {readOnly}: puede cambiar", "nota": "Junto con `objetivoAlPaso` forman la flecha de asociación hacia Casilla (0..1).", "codigo": "private Casilla coronacionPendiente;", "est": false, "enum": false}, {"uml": "- objetivoAlPaso: Casilla", "ln": 36, "lectura": "`-` privado · atributo `objetivoAlPaso` de tipo `Casilla` · sin {readOnly}: puede cambiar", "nota": "", "codigo": "private Casilla objetivoAlPaso;", "est": false, "enum": false}, {"uml": "+ Juego()", "ln": 42, "lectura": "`+` público · constructor `Juego`: se llama como la clase y no lleva tipo de retorno · no recibe nada", "nota": "", "codigo": "public Juego(){", "est": false, "enum": false}, {"uml": "+ getTablero(): Tablero", "ln": 54, "lectura": "`+` público · método `getTablero` · no recibe nada · devuelve `Tablero`", "nota": "", "codigo": "public Tablero getTablero(){", "est": false, "enum": false}, {"uml": "+ getTurno(): Color", "ln": 63, "lectura": "`+` público · método `getTurno` · no recibe nada · devuelve `Color`", "nota": "", "codigo": "public Color getTurno(){", "est": false, "enum": false}, {"uml": "+ isTerminado(): boolean", "ln": 72, "lectura": "`+` público · método `isTerminado` · no recibe nada · devuelve `boolean`", "nota": "", "codigo": "public boolean isTerminado(){", "est": false, "enum": false}, {"uml": "+ getResultado(): String", "ln": 81, "lectura": "`+` público · método `getResultado` · no recibe nada · devuelve `String`", "nota": "", "codigo": "public String getResultado(){", "est": false, "enum": false}, {"uml": "+ hayCoronacionPendiente(): boolean", "ln": 92, "lectura": "`+` público · método `hayCoronacionPendiente` · no recibe nada · devuelve `boolean`", "nota": "", "codigo": "public boolean hayCoronacionPendiente(){", "est": false, "enum": false}, {"uml": "+ mover(origen: Casilla, destino: Casilla): boolean", "ln": 121, "lectura": "`+` público · método `mover` · recibe `origen: Casilla, destino: Casilla` · devuelve `boolean`", "nota": "", "codigo": "public boolean mover(Casilla origen, Casilla destino){", "est": false, "enum": false}, {"uml": "- esCapturaAlPaso(origen: Casilla, destino: Casilla): boolean", "ln": 173, "lectura": "`-` privado · método `esCapturaAlPaso` · recibe `origen: Casilla, destino: Casilla` · devuelve `boolean`", "nota": "", "codigo": "private boolean esCapturaAlPaso(Casilla origen, Casilla destino){", "est": false, "enum": false}, {"uml": "- hacerCapturaAlPaso(origen: Casilla, destino: Casilla): boolean", "ln": 200, "lectura": "`-` privado · método `hacerCapturaAlPaso` · recibe `origen: Casilla, destino: Casilla` · devuelve `boolean`", "nota": "", "codigo": "private boolean hacerCapturaAlPaso(Casilla origen, Casilla destino){", "est": false, "enum": false}, {"uml": "- filaDeCoronacion(color: Color): int", "ln": 219, "lectura": "`-` privado · método `filaDeCoronacion` · recibe `color: Color` · devuelve `int`", "nota": "", "codigo": "private int filaDeCoronacion(Color color){", "est": false, "enum": false}, {"uml": "+ coronacion(tipo: TipoPieza): boolean", "ln": 235, "lectura": "`+` público · método `coronacion` · recibe `tipo: TipoPieza` · devuelve `boolean`", "nota": "", "codigo": "public boolean coronacion(TipoPieza tipo){", "est": false, "enum": false}, {"uml": "- dejaReyEnJaque(origen: Casilla, destino: Casilla): boolean", "ln": 268, "lectura": "`-` privado · método `dejaReyEnJaque` · recibe `origen: Casilla, destino: Casilla` · devuelve `boolean`", "nota": "", "codigo": "private boolean dejaReyEnJaque(Casilla origen, Casilla destino){", "est": false, "enum": false}, {"uml": "+ estaEnJaque(color: Color): boolean", "ln": 304, "lectura": "`+` público · método `estaEnJaque` · recibe `color: Color` · devuelve `boolean`", "nota": "", "codigo": "public boolean estaEnJaque(Color color){", "est": false, "enum": false}, {"uml": "- buscarRey(color: Color): Casilla", "ln": 330, "lectura": "`-` privado · método `buscarRey` · recibe `color: Color` · devuelve `Casilla`", "nota": "", "codigo": "private Casilla buscarRey(Color color){", "est": false, "enum": false}, {"uml": "+ hayMovimientosLegales(): boolean", "ln": 348, "lectura": "`+` público · método `hayMovimientosLegales` · no recibe nada · devuelve `boolean`", "nota": "", "codigo": "public boolean hayMovimientosLegales(){", "est": false, "enum": false}, {"uml": "- verificarFinDePartida(): void", "ln": 374, "lectura": "`-` privado · método `verificarFinDePartida` · no recibe nada · no devuelve nada (`void`)", "nota": "", "codigo": "private void verificarFinDePartida(){", "est": false, "enum": false}, {"uml": "- esEnroqueValido(origen: Casilla, destino: Casilla): boolean", "ln": 403, "lectura": "`-` privado · método `esEnroqueValido` · recibe `origen: Casilla, destino: Casilla` · devuelve `boolean`", "nota": "", "codigo": "private boolean esEnroqueValido(Casilla origen, Casilla destino){", "est": false, "enum": false}, {"uml": "+ intentarEnroque(origen: Casilla, destino: Casilla): boolean", "ln": 463, "lectura": "`+` público · método `intentarEnroque` · recibe `origen: Casilla, destino: Casilla` · devuelve `boolean`", "nota": "", "codigo": "public boolean intentarEnroque(Casilla origen, Casilla destino){", "est": false, "enum": false}, {"uml": "+ movimientosLegales(origen: Casilla): List<Casilla>", "ln": 493, "lectura": "`+` público · método `movimientosLegales` · recibe `origen: Casilla` · devuelve `List<Casilla>`", "nota": "Método nuevo del corte III: lo usa el controlador para pintar los destinos en verde.", "codigo": "public List<Casilla> movimientosLegales(Casilla origen){", "est": false, "enum": false}]}, {"n": "Tablero", "paq": "modelo", "resumen": "Tiene la matriz de 64 casillas, que crea en su constructor: composición de 1 a 64.", "decl": "public class Tablero", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "- casillas: Casilla[8][8] {readOnly}", "ln": 16, "lectura": "`-` privado · atributo `casillas` de tipo `Casilla[8][8]` · `{readOnly}` = final, no cambia", "nota": "Sale la flecha de composición hacia Casilla con el rótulo `-casillas` y multiplicidad 64.", "codigo": "private final Casilla[][] casillas = new Casilla[8][8];", "est": false, "enum": false}, {"uml": "+ Tablero()", "ln": 21, "lectura": "`+` público · constructor `Tablero`: se llama como la clase y no lleva tipo de retorno · no recibe nada", "nota": "", "codigo": "public Tablero(){", "est": false, "enum": false}, {"uml": "+ getCasilla(f: int, c: int): Casilla", "ln": 38, "lectura": "`+` público · método `getCasilla` · recibe `f: int, c: int` · devuelve `Casilla`", "nota": "", "codigo": "public Casilla getCasilla(int f, int c){", "est": false, "enum": false}, {"uml": "+ colocarPieza(pieza: Pieza, f: int, c: int): void", "ln": 51, "lectura": "`+` público · método `colocarPieza` · recibe `pieza: Pieza, f: int, c: int` · no devuelve nada (`void`)", "nota": "", "codigo": "public void colocarPieza(Pieza pieza, int f, int c){", "est": false, "enum": false}, {"uml": "+ moverPieza(origen: Casilla, destino: Casilla): void", "ln": 66, "lectura": "`+` público · método `moverPieza` · recibe `origen: Casilla, destino: Casilla` · no devuelve nada (`void`)", "nota": "", "codigo": "public void moverPieza(Casilla origen, Casilla destino){", "est": false, "enum": false}, {"uml": "+ configurarInicial(): void", "ln": 79, "lectura": "`+` público · método `configurarInicial` · no recibe nada · no devuelve nada (`void`)", "nota": "", "codigo": "public void configurarInicial() {", "est": false, "enum": false}, {"uml": "+ casillaAtacada(casilla: Casilla, porQuien: Color): boolean", "ln": 110, "lectura": "`+` público · método `casillaAtacada` · recibe `casilla: Casilla, porQuien: Color` · devuelve `boolean`", "nota": "", "codigo": "public boolean casillaAtacada(Casilla casilla, Color porQuien){", "est": false, "enum": false}]}, {"n": "Casilla", "paq": "modelo", "resumen": "Una casilla: fila y columna fijas ({readOnly}) y la pieza que tenga encima (0..1).", "decl": "public class Casilla", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "- fila: int {readOnly}", "ln": 17, "lectura": "`-` privado · atributo `fila` de tipo `int` · `{readOnly}` = final, no cambia", "nota": "", "codigo": "private final int fila;", "est": false, "enum": false}, {"uml": "- columna: int {readOnly}", "ln": 19, "lectura": "`-` privado · atributo `columna` de tipo `int` · `{readOnly}` = final, no cambia", "nota": "", "codigo": "private final int columna;", "est": false, "enum": false}, {"uml": "- pieza: Pieza", "ln": 21, "lectura": "`-` privado · atributo `pieza` de tipo `Pieza` · sin {readOnly}: puede cambiar", "nota": "Sale la flecha de agregación hacia Pieza con el rótulo `-pieza` (0..1).", "codigo": "private Pieza pieza;", "est": false, "enum": false}, {"uml": "+ Casilla(fila: int, columna: int)", "ln": 29, "lectura": "`+` público · constructor `Casilla`: se llama como la clase y no lleva tipo de retorno · recibe `fila: int, columna: int`", "nota": "", "codigo": "public Casilla(int fila, int columna){", "est": false, "enum": false}, {"uml": "+ getFila(): int", "ln": 39, "lectura": "`+` público · método `getFila` · no recibe nada · devuelve `int`", "nota": "", "codigo": "public int getFila(){", "est": false, "enum": false}, {"uml": "+ getColumna(): int", "ln": 48, "lectura": "`+` público · método `getColumna` · no recibe nada · devuelve `int`", "nota": "", "codigo": "public int getColumna(){", "est": false, "enum": false}, {"uml": "+ getPieza(): Pieza", "ln": 57, "lectura": "`+` público · método `getPieza` · no recibe nada · devuelve `Pieza`", "nota": "", "codigo": "public Pieza getPieza(){", "est": false, "enum": false}, {"uml": "+ setPieza(pieza: Pieza): void", "ln": 67, "lectura": "`+` público · método `setPieza` · recibe `pieza: Pieza` · no devuelve nada (`void`)", "nota": "", "codigo": "public void setPieza(Pieza pieza){", "est": false, "enum": false}, {"uml": "+ estaVacia(): boolean", "ln": 76, "lectura": "`+` público · método `estaVacia` · no recibe nada · devuelve `boolean`", "nota": "", "codigo": "public boolean estaVacia(){", "est": false, "enum": false}, {"uml": "+ toString(): String", "ln": 86, "lectura": "`+` público · método `toString` · no recibe nada · devuelve `String`", "nota": "", "codigo": "public String toString(){", "est": false, "enum": false}]}, {"n": "Pieza", "paq": "modelo", "resumen": "Clase abstracta (nombre en cursiva). `getTipo` y `getMovimientosPosibles` son abstractos (en cursiva). Sus atributos son `protected` (#).", "decl": "public abstract class Pieza implements Movible", "cab": "Franja de arriba: el nombre. En cursiva: es una clase abstracta (no se puede hacer `new`).", "filas": [{"uml": "# color: Color", "ln": 21, "lectura": "`#` protegido · atributo `color` de tipo `Color` · sin {readOnly}: puede cambiar", "nota": "", "codigo": "protected Color color;", "est": false, "enum": false}, {"uml": "# casilla: Casilla", "ln": 23, "lectura": "`#` protegido · atributo `casilla` de tipo `Casilla` · sin {readOnly}: puede cambiar", "nota": "Es la otra punta de la flecha Casilla–Pieza: el rótulo `#casilla` del lado de Casilla.", "codigo": "protected Casilla casilla;", "est": false, "enum": false}, {"uml": "# seHaMovido: boolean", "ln": 25, "lectura": "`#` protegido · atributo `seHaMovido` de tipo `boolean` · sin {readOnly}: puede cambiar", "nota": "", "codigo": "protected boolean seHaMovido;", "est": false, "enum": false}, {"uml": "+ Pieza(color: Color)", "ln": 32, "lectura": "`+` público · constructor `Pieza`: se llama como la clase y no lleva tipo de retorno · recibe `color: Color`", "nota": "", "codigo": "public Pieza(Color color){", "est": false, "enum": false}, {"uml": "+ getColor(): Color", "ln": 42, "lectura": "`+` público · método `getColor` · no recibe nada · devuelve `Color`", "nota": "", "codigo": "public Color getColor(){", "est": false, "enum": false}, {"uml": "+ getCasilla(): Casilla", "ln": 51, "lectura": "`+` público · método `getCasilla` · no recibe nada · devuelve `Casilla`", "nota": "", "codigo": "public Casilla getCasilla(){", "est": false, "enum": false}, {"uml": "+ setCasilla(casilla: Casilla): void", "ln": 61, "lectura": "`+` público · método `setCasilla` · recibe `casilla: Casilla` · no devuelve nada (`void`)", "nota": "", "codigo": "public void setCasilla(Casilla casilla){", "est": false, "enum": false}, {"uml": "+ seHaMovido(): boolean", "ln": 70, "lectura": "`+` público · método `seHaMovido` · no recibe nada · devuelve `boolean`", "nota": "", "codigo": "public boolean seHaMovido(){", "est": false, "enum": false}, {"uml": "+ marcarComoMovida(): void", "ln": 78, "lectura": "`+` público · método `marcarComoMovida` · no recibe nada · no devuelve nada (`void`)", "nota": "", "codigo": "public void marcarComoMovida(){", "est": false, "enum": false}, {"uml": "+ setSeHaMovido(v: boolean): void", "ln": 186, "lectura": "`+` público · método `setSeHaMovido` · recibe `v: boolean` · no devuelve nada (`void`)", "nota": "", "codigo": "public void setSeHaMovido(boolean v){", "est": false, "enum": false}, {"uml": "+ getTipo(): TipoPieza", "ln": 87, "lectura": "`+` público · método `getTipo` · no recibe nada · devuelve `TipoPieza` · en cursiva = abstracto, sin código aquí", "nota": "En cursiva: es abstracto, no tiene código en Pieza.", "codigo": "public abstract TipoPieza getTipo();", "est": false, "enum": false}, {"uml": "+ getMovimientosPosibles(tablero: Tablero): List<Casilla>", "ln": 115, "lectura": "`+` público · método `getMovimientosPosibles` · recibe `tablero: Tablero` · devuelve `List<Casilla>` · en cursiva = abstracto, sin código aquí", "nota": "En cursiva: abstracto. Cada pieza lo implementa a su manera (polimorfismo).", "codigo": "public abstract java.util.List<Casilla> getMovimientosPosibles(Tablero tablero);", "est": false, "enum": false}, {"uml": "+ casillasAtacadas(t: Tablero): List<Casilla>", "ln": 101, "lectura": "`+` público · método `casillasAtacadas` · recibe `t: Tablero` · devuelve `List<Casilla>`", "nota": "", "codigo": "public java.util.List<Casilla> casillasAtacadas(Tablero t){", "est": false, "enum": false}, {"uml": "+ toString(): String", "ln": 123, "lectura": "`+` público · método `toString` · no recibe nada · devuelve `String`", "nota": "", "codigo": "public String toString(){", "est": false, "enum": false}, {"uml": "# agregarSiValida(lista: List<Casilla>, t: Tablero, f: int, c: int): void", "ln": 138, "lectura": "`#` protegido · método `agregarSiValida` · recibe `lista: List<Casilla>, t: Tablero, f: int, c: int` · no devuelve nada (`void`)", "nota": "", "codigo": "protected void agregarSiValida(java.util.List<Casilla> lista, Tablero t, int f, int c){", "est": false, "enum": false}, {"uml": "# deslizar(lista: List<Casilla>, t: Tablero, df: int, dc: int): void", "ln": 160, "lectura": "`#` protegido · método `deslizar` · recibe `lista: List<Casilla>, t: Tablero, df: int, dc: int` · no devuelve nada (`void`)", "nota": "", "codigo": "protected void deslizar(java.util.List<Casilla> lista, Tablero t, int df, int dc){", "est": false, "enum": false}]}, {"n": "Peon", "paq": "modelo", "resumen": "Hereda de Pieza. Además de los dos métodos abstractos, sobrescribe `casillasAtacadas`, porque ataca distinto a como avanza.", "decl": "public class Peon extends Pieza", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "+ Peon(color: Color)", "ln": 23, "lectura": "`+` público · constructor `Peon`: se llama como la clase y no lleva tipo de retorno · recibe `color: Color`", "nota": "", "codigo": "public Peon(Color color) {", "est": false, "enum": false}, {"uml": "+ getTipo(): TipoPieza", "ln": 33, "lectura": "`+` público · método `getTipo` · no recibe nada · devuelve `TipoPieza`", "nota": "", "codigo": "public TipoPieza getTipo() {", "est": false, "enum": false}, {"uml": "+ getMovimientosPosibles(t: Tablero): List<Casilla>", "ln": 52, "lectura": "`+` público · método `getMovimientosPosibles` · recibe `t: Tablero` · devuelve `List<Casilla>`", "nota": "", "codigo": "public List<Casilla> getMovimientosPosibles(Tablero t) {", "est": false, "enum": false}, {"uml": "+ casillasAtacadas(t: Tablero): List<Casilla>", "ln": 85, "lectura": "`+` público · método `casillasAtacadas` · recibe `t: Tablero` · devuelve `List<Casilla>`", "nota": "Solo Peon lo tiene en su caja porque es el único que lo sobrescribe.", "codigo": "public List<Casilla> casillasAtacadas(Tablero t) {", "est": false, "enum": false}]}, {"n": "Torre", "paq": "modelo", "resumen": "Hereda de Pieza e implementa sus dos métodos abstractos.", "decl": "public class Torre extends Pieza", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "+ Torre(color: Color)", "ln": 21, "lectura": "`+` público · constructor `Torre`: se llama como la clase y no lleva tipo de retorno · recibe `color: Color`", "nota": "", "codigo": "public Torre(Color color){", "est": false, "enum": false}, {"uml": "+ getTipo(): TipoPieza", "ln": 31, "lectura": "`+` público · método `getTipo` · no recibe nada · devuelve `TipoPieza`", "nota": "", "codigo": "public TipoPieza getTipo(){", "est": false, "enum": false}, {"uml": "+ getMovimientosPosibles(t: Tablero): List<Casilla>", "ln": 44, "lectura": "`+` público · método `getMovimientosPosibles` · recibe `t: Tablero` · devuelve `List<Casilla>`", "nota": "", "codigo": "public List<Casilla> getMovimientosPosibles(Tablero t){", "est": false, "enum": false}]}, {"n": "Caballo", "paq": "modelo", "resumen": "Hereda de Pieza e implementa sus dos métodos abstractos.", "decl": "public class Caballo extends Pieza", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "+ Caballo(color: Color)", "ln": 21, "lectura": "`+` público · constructor `Caballo`: se llama como la clase y no lleva tipo de retorno · recibe `color: Color`", "nota": "", "codigo": "public Caballo(Color color){", "est": false, "enum": false}, {"uml": "+ getTipo(): TipoPieza", "ln": 31, "lectura": "`+` público · método `getTipo` · no recibe nada · devuelve `TipoPieza`", "nota": "", "codigo": "public TipoPieza getTipo(){", "est": false, "enum": false}, {"uml": "+ getMovimientosPosibles(t: Tablero): List<Casilla>", "ln": 44, "lectura": "`+` público · método `getMovimientosPosibles` · recibe `t: Tablero` · devuelve `List<Casilla>`", "nota": "", "codigo": "public List<Casilla> getMovimientosPosibles(Tablero t) {", "est": false, "enum": false}]}, {"n": "Alfil", "paq": "modelo", "resumen": "Hereda de Pieza e implementa sus dos métodos abstractos.", "decl": "public class Alfil extends Pieza", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "+ Alfil(color: Color)", "ln": 21, "lectura": "`+` público · constructor `Alfil`: se llama como la clase y no lleva tipo de retorno · recibe `color: Color`", "nota": "", "codigo": "public Alfil(Color color){", "est": false, "enum": false}, {"uml": "+ getTipo(): TipoPieza", "ln": 31, "lectura": "`+` público · método `getTipo` · no recibe nada · devuelve `TipoPieza`", "nota": "", "codigo": "public TipoPieza getTipo(){", "est": false, "enum": false}, {"uml": "+ getMovimientosPosibles(t: Tablero): List<Casilla>", "ln": 43, "lectura": "`+` público · método `getMovimientosPosibles` · recibe `t: Tablero` · devuelve `List<Casilla>`", "nota": "", "codigo": "public List<Casilla> getMovimientosPosibles(Tablero t) {", "est": false, "enum": false}]}, {"n": "Dama", "paq": "modelo", "resumen": "Hereda de Pieza e implementa sus dos métodos abstractos.", "decl": "public class Dama extends Pieza", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "+ Dama(color: Color)", "ln": 20, "lectura": "`+` público · constructor `Dama`: se llama como la clase y no lleva tipo de retorno · recibe `color: Color`", "nota": "", "codigo": "public Dama(Color color){", "est": false, "enum": false}, {"uml": "+ getTipo(): TipoPieza", "ln": 30, "lectura": "`+` público · método `getTipo` · no recibe nada · devuelve `TipoPieza`", "nota": "", "codigo": "public TipoPieza getTipo(){", "est": false, "enum": false}, {"uml": "+ getMovimientosPosibles(t: Tablero): List<Casilla>", "ln": 43, "lectura": "`+` público · método `getMovimientosPosibles` · recibe `t: Tablero` · devuelve `List<Casilla>`", "nota": "", "codigo": "public List<Casilla> getMovimientosPosibles(Tablero t) {", "est": false, "enum": false}]}, {"n": "Rey", "paq": "modelo", "resumen": "Hereda de Pieza e implementa sus dos métodos abstractos.", "decl": "public class Rey extends Pieza", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común.", "filas": [{"uml": "+ Rey(color: Color)", "ln": 21, "lectura": "`+` público · constructor `Rey`: se llama como la clase y no lleva tipo de retorno · recibe `color: Color`", "nota": "", "codigo": "public Rey(Color color){", "est": false, "enum": false}, {"uml": "+ getTipo(): TipoPieza", "ln": 31, "lectura": "`+` público · método `getTipo` · no recibe nada · devuelve `TipoPieza`", "nota": "", "codigo": "public TipoPieza getTipo(){", "est": false, "enum": false}, {"uml": "+ getMovimientosPosibles(t: Tablero): List<Casilla>", "ln": 45, "lectura": "`+` público · método `getMovimientosPosibles` · recibe `t: Tablero` · devuelve `List<Casilla>`", "nota": "", "codigo": "public List<Casilla> getMovimientosPosibles(Tablero t) {", "est": false, "enum": false}]}, {"n": "Movible", "paq": "modelo", "resumen": "Interfaz propia («interface», nombre en cursiva): solo declara los dos métodos que toda pieza debe tener.", "decl": "public interface Movible", "cab": "Franja de arriba: el nombre. «interface» arriba y el nombre en cursiva: es una interfaz; todos sus métodos son abstractos.", "filas": [{"uml": "+ getMovimientosPosibles(tablero: Tablero): List<Casilla>", "ln": 26, "lectura": "`+` público · método `getMovimientosPosibles` · recibe `tablero: Tablero` · devuelve `List<Casilla>` · en cursiva = abstracto, sin código aquí", "nota": "", "codigo": "List<Casilla> getMovimientosPosibles(Tablero tablero);", "est": false, "enum": false}, {"uml": "+ casillasAtacadas(tablero: Tablero): List<Casilla>", "ln": 34, "lectura": "`+` público · método `casillasAtacadas` · recibe `tablero: Tablero` · devuelve `List<Casilla>` · en cursiva = abstracto, sin código aquí", "nota": "", "codigo": "List<Casilla> casillasAtacadas(Tablero tablero);", "est": false, "enum": false}]}, {"n": "Color", "paq": "modelo", "resumen": "Enum («enumeration»): sus valores fijos van en la franja del medio. Tiene un método, `opuesto()`.", "decl": "public enum Color", "cab": "Franja de arriba: el nombre. «enumeration» arriba: es un enum; sus valores van en la franja del medio.", "filas": [{"uml": "BLANCO", "ln": 12, "lectura": "valor fijo del enum: `BLANCO`", "nota": "", "codigo": "BLANCO,", "est": false, "enum": true}, {"uml": "NEGRO", "ln": 14, "lectura": "valor fijo del enum: `NEGRO`", "nota": "", "codigo": "NEGRO;", "est": false, "enum": true}, {"uml": "+ opuesto(): Color", "ln": 22, "lectura": "`+` público · método `opuesto` · no recibe nada · devuelve `Color`", "nota": "", "codigo": "public Color opuesto(){", "est": false, "enum": false}]}, {"n": "TipoPieza", "paq": "modelo", "resumen": "Enum con los seis tipos de pieza. No tiene métodos: la franja de abajo va vacía.", "decl": "public enum TipoPieza", "cab": "Franja de arriba: el nombre. «enumeration» arriba: es un enum; sus valores van en la franja del medio.", "filas": [{"uml": "PEON", "ln": 13, "lectura": "valor fijo del enum: `PEON`", "nota": "", "codigo": "PEON,", "est": false, "enum": true}, {"uml": "TORRE", "ln": 15, "lectura": "valor fijo del enum: `TORRE`", "nota": "", "codigo": "TORRE,", "est": false, "enum": true}, {"uml": "CABALLO", "ln": 17, "lectura": "valor fijo del enum: `CABALLO`", "nota": "", "codigo": "CABALLO,", "est": false, "enum": true}, {"uml": "ALFIL", "ln": 19, "lectura": "valor fijo del enum: `ALFIL`", "nota": "", "codigo": "ALFIL,", "est": false, "enum": true}, {"uml": "DAMA", "ln": 21, "lectura": "valor fijo del enum: `DAMA`", "nota": "", "codigo": "DAMA,", "est": false, "enum": true}, {"uml": "REY", "ln": 23, "lectura": "valor fijo del enum: `REY`", "nota": "", "codigo": "REY;", "est": false, "enum": true}]}, {"n": "ActionListener", "paq": "java.awt.event (de Java)", "resumen": "Interfaz de la librería de Java. La implementa ControladorJuego y la recibe VentanaAjedrez como parámetro.", "decl": "public interface ActionListener", "cab": "Franja de arriba: el nombre. «interface» arriba y el nombre en cursiva: es una interfaz; todos sus métodos son abstractos. Debajo dice (java.awt.event): es de la librería de Java, no nuestra.", "filas": [{"uml": "+ actionPerformed(e: ActionEvent): void", "ln": null, "lectura": "`+` público · método `actionPerformed` · recibe `e: ActionEvent` · no devuelve nada (`void`) · en cursiva = abstracto, sin código aquí", "nota": "", "codigo": "(es de Java: no está en nuestro código)", "est": false, "enum": false}]}, {"n": "JFrame", "paq": "javax.swing (de Java)", "resumen": "Clase de Swing: la ventana. VentanaAjedrez hereda de ella. Se dibuja sin miembros porque no es nuestra; solo importa la herencia.", "decl": "public class JFrame", "cab": "Franja de arriba: el nombre. En letra normal (no cursiva): no es abstracta. Sin estereotipo: es una clase común. Debajo dice (javax.swing): es de la librería de Java, no nuestra.", "filas": []}], "rel": [{"id": "Ajedrez-Juego", "tipo": "dep", "est": "«create»", "de": "Ajedrez", "a": "Juego", "lineas": ["Ajedrez:22"], "leer": "Ajedrez crea un Juego dentro del main.", "codigo": "En el main: `Juego juego = new Juego();` (Ajedrez:22). Es una variable local del main, no un atributo.", "porque": "Dependencia porque Ajedrez no tiene atributos: el juego vive en una variable local. «create» porque lo crea con `new`.", "trampa": "Si pregunta por qué no es composición: la composición exige un atributo, y Ajedrez no guarda nada."}, {"id": "Ajedrez-VentanaAjedrez", "tipo": "dep", "est": "«create»", "de": "Ajedrez", "a": "VentanaAjedrez", "lineas": ["Ajedrez:23", "Ajedrez:25"], "leer": "Ajedrez crea la VentanaAjedrez dentro del main y la muestra.", "codigo": "`VentanaAjedrez vista = new VentanaAjedrez();` (Ajedrez:23) y `vista.setVisible(true);` (Ajedrez:25).", "porque": "Dependencia «create»: variable local creada con `new`, sin atributo."}, {"id": "Ajedrez-ControladorJuego", "tipo": "dep", "est": "«create»", "de": "Ajedrez", "a": "ControladorJuego", "lineas": ["Ajedrez:24"], "leer": "Ajedrez crea el ControladorJuego y le pasa el juego y la ventana.", "codigo": "`ControladorJuego controlador = new ControladorJuego(juego, vista);` (Ajedrez:24).", "porque": "Dependencia «create»: es la tercera variable local del main. Las tres juntas son el patrón **Creador**: el main crea las tres partes del MVC y las conecta."}, {"id": "ControladorJuego-ActionListener", "tipo": "imp", "de": "ControladorJuego", "a": "ActionListener", "lineas": ["ControladorJuego:30", "ControladorJuego:62"], "leer": "ControladorJuego implementa la interfaz ActionListener: se compromete a tener el método `actionPerformed`.", "codigo": "`public class ControladorJuego implements ActionListener` (ControladorJuego:30) y el método que exige la interfaz (ControladorJuego:62).", "porque": "Implementación (línea punteada con triángulo hueco) porque es `implements` de una interfaz. Si fuera `extends` de una clase, sería herencia (línea continua).", "trampa": "ActionListener es de Java (`java.awt.event`): por eso su caja lleva el paquete entre paréntesis. Es el mismo caso del ejemplo `Botón implements ControladordeBoton` de la guía de UML."}, {"id": "ControladorJuego-Juego", "tipo": "asoc", "de": "ControladorJuego", "a": "Juego", "rol": "-juego", "mult": ["1", "1"], "lineas": ["ControladorJuego:33", "ControladorJuego:47", "ControladorJuego:112"], "leer": "Un ControladorJuego conoce un Juego, guardado en su atributo `juego`.", "codigo": "El atributo `private Juego juego;` (ControladorJuego:33). Lo recibe en el constructor (ControladorJuego:47) y «Nueva partida» lo reemplaza por otro (ControladorJuego:112).", "porque": "Línea continua porque es un atributo. Va como asociación simple, sin rombo: la primera partida la recibe ya creada (eso sería agregación), pero «Nueva partida» crea otra con `new` (eso sería composición). Como no es siempre lo uno ni lo otro, se deja como asociación navegable: el controlador conoce al juego y el juego no conoce al controlador.", "trampa": "«La relación existe porque hay un atributo de tipo Juego. Como a veces lo recibe y a veces lo crea, la dejamos como asociación.»"}, {"id": "ControladorJuego-VentanaAjedrez", "tipo": "agr", "de": "ControladorJuego", "a": "VentanaAjedrez", "rol": "-vista", "mult": ["1", "1"], "lineas": ["ControladorJuego:35", "ControladorJuego:48"], "leer": "Un ControladorJuego tiene una VentanaAjedrez que recibe ya creada.", "codigo": "El atributo `private final VentanaAjedrez vista;` (ControladorJuego:35) y la asignación en el constructor (ControladorJuego:48). El `new` está en el main (Ajedrez:23).", "porque": "Agregación (rombo vacío del lado del controlador) porque la guarda en un atributo pero no la crea: la recibe del main. `final` porque siempre es la misma ventana.", "trampa": "Si pregunta «¿y por qué no composición?»: porque el controlador no hace el `new` de la ventana."}, {"id": "ControladorJuego-Casilla", "tipo": "asoc", "de": "ControladorJuego", "a": "Casilla", "rol": "-seleccionada", "mult": ["1", "0..1"], "lineas": ["ControladorJuego:37", "ControladorJuego:94"], "leer": "Un ControladorJuego recuerda cero o una Casilla: la de la pieza escogida con el primer clic.", "codigo": "El atributo `private Casilla seleccionada;` (ControladorJuego:37); se llena con el primer clic (ControladorJuego:94) y vuelve a `null` después de cada jugada (ControladorJuego:97).", "porque": "Asociación porque es un atributo. Multiplicidad 0..1 porque casi siempre es `null`. No es agregación: la casilla no es una parte del controlador, es una referencia a una casilla del tablero."}, {"id": "VentanaAjedrez-JFrame", "tipo": "her", "de": "VentanaAjedrez", "a": "JFrame", "lineas": ["VentanaAjedrez:30", "VentanaAjedrez:54"], "leer": "VentanaAjedrez es un JFrame.", "codigo": "`public class VentanaAjedrez extends JFrame` (VentanaAjedrez:30). Por eso puede llamar `setTitle`, `setSize` o `setVisible` sin escribirlos (VentanaAjedrez:54).", "porque": "Herencia (línea continua con triángulo hueco): `extends`. Se cumple el «es un»: la ventana del ajedrez ES UNA ventana de Swing."}, {"id": "VentanaAjedrez-ActionListener", "tipo": "dep", "est": "«parameter»", "de": "VentanaAjedrez", "a": "ActionListener", "lineas": ["VentanaAjedrez:94", "VentanaAjedrez:97"], "leer": "VentanaAjedrez usa un ActionListener que le llega como parámetro.", "codigo": "`agregarControlador(ActionListener controlador)` (VentanaAjedrez:94) se lo pasa a cada botón (VentanaAjedrez:97). No lo guarda en ningún atributo.", "porque": "Dependencia «parameter»: solo es un parámetro. Gracias a esto la vista no conoce a ControladorJuego, solo a la interfaz: **bajo acoplamiento**."}, {"id": "VentanaAjedrez-modelo", "tipo": "dep", "est": "«parameter» / «return»", "de": "VentanaAjedrez", "a": "paquete modelo", "lineas": ["VentanaAjedrez:111", "VentanaAjedrez:114", "VentanaAjedrez:176", "VentanaAjedrez:154"], "leer": "La vista usa clases del modelo: Tablero, Casilla y Pieza como parámetros, y devuelve un TipoPieza.", "codigo": "`mostrarTablero(Tablero tablero, Casilla seleccionada, List<Casilla> destinos)` (VentanaAjedrez:111) le pide las casillas al tablero (VentanaAjedrez:114); `simbolo(Pieza pieza)` (VentanaAjedrez:176); `pedirPiezaCoronacion(): TipoPieza` (VentanaAjedrez:154).", "porque": "Dependencias (punteadas) porque la vista no guarda ninguna clase del modelo en atributos: las recibe para pintar y las suelta. Se dibuja una sola flecha hacia el paquete para no llenar el plano de líneas; la nota del diagrama dice cuáles son.", "trampa": "Si pregunta por qué depende: «recibe el Tablero como parámetro en mostrarTablero y usa su método getCasilla». Son dos de las tres razones que da el profe."}, {"id": "Juego-Tablero", "tipo": "comp", "de": "Juego", "a": "Tablero", "rol": "-tablero", "mult": ["1", "1"], "lineas": ["Juego:17", "Juego:43"], "leer": "Un Juego tiene un Tablero, que él mismo crea.", "codigo": "El atributo `private final Tablero tablero;` (Juego:17) y el `new Tablero()` del constructor (Juego:43).", "porque": "Composición (rombo lleno del lado de Juego) porque Juego hace el `new`: el tablero nace con la partida y muere con ella. `final`: la partida no cambia de tablero."}, {"id": "Tablero-Casilla", "tipo": "comp", "de": "Tablero", "a": "Casilla", "rol": "-casillas", "mult": ["1", "64"], "lineas": ["Tablero:16", "Tablero:24"], "leer": "Un Tablero tiene 64 Casillas, que crea en su constructor.", "codigo": "La matriz `private final Casilla[][] casillas = new Casilla[8][8];` (Tablero:16) y el `new Casilla(f, c)` dentro de los dos for (Tablero:24).", "porque": "Composición: el tablero crea sus casillas y no existen fuera de él. La multiplicidad 64 sale de la matriz de 8 × 8."}, {"id": "Casilla-Pieza", "tipo": "agr", "de": "Casilla", "a": "Pieza", "rol": "-pieza", "mult": ["0..1", "0..1"], "lineas": ["Casilla:21", "Pieza:23", "Tablero:80"], "leer": "Una Casilla tiene cero o una Pieza encima, y la pieza sabe en qué casilla está.", "codigo": "El atributo `private Pieza pieza;` de Casilla (Casilla:21) y el `protected Casilla casilla;` de Pieza (Pieza:23). Las piezas se crean afuera, en el Tablero (Tablero:80).", "porque": "Agregación (rombo vacío del lado de Casilla) porque la casilla guarda la pieza pero no la crea: la recibe con `setPieza`. Una pieza capturada sale del tablero y la casilla sigue existiendo. Es en los dos sentidos, por eso hay un rótulo en cada punta: `-pieza` y `#casilla`, los dos 0..1."}, {"id": "Juego-Casilla", "tipo": "asoc", "de": "Juego", "a": "Casilla", "rol": "-coronacionPendiente · -objetivoAlPaso", "mult": ["1", "0..1"], "lineas": ["Juego:29", "Juego:36", "Juego:152", "Juego:149"], "leer": "Un Juego recuerda dos casillas especiales: la del peón que espera coronarse y la que saltó un peón en su doble paso.", "codigo": "Los atributos `coronacionPendiente` (Juego:29) y `objetivoAlPaso` (Juego:36). Se llenan en `mover` (Juego:152 y Juego:149).", "porque": "Asociación porque son atributos, y 0..1 porque casi siempre son `null`. Son dos atributos del mismo tipo, por eso la línea lleva los dos rótulos. No es composición: Juego no crea casillas, apunta a casillas del tablero."}, {"id": "Juego-Color", "tipo": "asoc", "de": "Juego", "a": "Color", "rol": "-turno", "mult": ["1", "1"], "lineas": ["Juego:19", "Juego:45", "Juego:155"], "leer": "Un Juego sabe de qué color es el turno.", "codigo": "El atributo `private Color turno;` (Juego:19); empieza en BLANCO (Juego:45) y cambia con `opuesto()` (Juego:155).", "porque": "Asociación con un enum: el atributo guarda uno de sus dos valores."}, {"id": "Pieza-Color", "tipo": "asoc", "de": "Pieza", "a": "Color", "rol": "#color", "mult": ["1", "1"], "lineas": ["Pieza:21"], "leer": "Toda Pieza tiene un Color.", "codigo": "El atributo `protected Color color;` (Pieza:21). El `#` del rótulo es porque es `protected`.", "porque": "Asociación: es un atributo de tipo Color, que nunca es null (se recibe en el constructor)."}, {"id": "Pieza-TipoPieza", "tipo": "dep", "est": "«return»", "de": "Pieza", "a": "TipoPieza", "lineas": ["Pieza:87", "Peon:34"], "leer": "Pieza devuelve un TipoPieza en `getTipo()`, pero no guarda ninguno.", "codigo": "`public abstract TipoPieza getTipo();` (Pieza:87). Cada subclase devuelve su constante, por ejemplo Peon:34.", "porque": "Dependencia «return»: TipoPieza solo aparece como tipo de retorno, no como atributo."}, {"id": "Pieza-Movible", "tipo": "imp", "de": "Pieza", "a": "Movible", "lineas": ["Pieza:18", "Movible:17"], "leer": "Pieza implementa la interfaz Movible.", "codigo": "`public abstract class Pieza implements Movible` (Pieza:18). La interfaz está en Movible:17.", "porque": "Implementación (punteada con triángulo hueco). Como las seis piezas heredan de Pieza, todas son Movible sin escribir `implements`."}, {"id": "Piezas-Pieza", "tipo": "her", "de": "Peon, Torre, Caballo, Alfil, Dama, Rey", "des": ["Peon", "Torre", "Caballo", "Alfil", "Dama", "Rey"], "a": "Pieza", "lineas": ["Peon:16", "Torre:13", "Caballo:14", "Alfil:14", "Dama:13", "Rey:14"], "leer": "Las seis piezas son Pieza: heredan sus atributos y sus métodos.", "codigo": "Cada una hace `extends Pieza` (Peon:16, Torre:13, …) y llama `super(color)` en su constructor (Peon:24).", "porque": "Herencia (línea continua con triángulo hueco). Una sola punta hacia Pieza con las seis líneas unidas es la forma corta de dibujar seis herencias.", "trampa": "Peon tiene un método más en su caja (`casillasAtacadas`) porque lo sobrescribe: ataca en diagonal aunque avanza de frente."}], "nohay": [["Juego → VentanaAjedrez o ControladorJuego", "El modelo no conoce a nadie de afuera: sus únicos import son `ArrayList` y `List` (Juego:3, Juego:4)."], ["VentanaAjedrez → ControladorJuego", "La vista recibe un ActionListener, no un ControladorJuego (VentanaAjedrez:94). Por eso la flecha va a ActionListener."], ["VentanaAjedrez → Juego", "La vista nunca recibe ni guarda el Juego: el controlador le pasa solo el Tablero (ControladorJuego:126)."], ["VentanaAjedrez → JButton / JLabel", "Son clases de Java: quedan como tipo de un atributo dentro de la caja. Solo se dibujan JFrame y ActionListener, porque la herencia y la implementación hay que verlas."], ["ControladorJuego ◆ Juego (composición)", "No siempre lo crea: el primero lo recibe del main. Por eso es asociación."], ["Casilla ◆ Pieza (composición)", "Las piezas no las crea la casilla sino el Tablero (Tablero:80). Por eso el rombo es vacío."], ["Tablero → Juego", "El tablero no sabe en qué partida está: no tiene ningún atributo de tipo Juego."], ["Ajedrez → (flechas continuas)", "Ajedrez no tiene atributos: todo lo que crea son variables locales del main. Por eso sus tres flechas son punteadas."]], "notacion": [["+", "público: se puede usar desde cualquier clase."], ["-", "privado: solo la propia clase."], ["#", "protegido: la clase, sus subclases y el paquete. Lo usan los atributos de Pieza."], ["nombre: Tipo", "atributo o parámetro: primero el nombre y después el tipo, al revés que en Java."], ["metodo(p: Tipo): Retorno", "lo que va después de los dos puntos finales es lo que devuelve. `void` = no devuelve nada."], ["Clase(p: Tipo)", "constructor: se llama como la clase y no lleva tipo de retorno."], ["subrayado", "`static`: atributo o método de clase, uno solo para todos los objetos (el main, los colores de la ventana)."], ["cursiva", "abstracto: la clase Pieza, sus métodos sin código, y las interfaces."], ["{readOnly}", "`final`: se asigna una vez y no cambia; por eso no tiene setter."], ["Tipo[] / Tipo[][]", "arreglo / matriz de ese tipo."], ["«interface» / «enumeration»", "estereotipos de clase: interfaz o enum."], ["(java.awt.event)", "debajo del nombre: la clase es de la librería de Java, no nuestra."], ["◆ línea continua", "composición: el todo crea la parte y la guarda en un atributo."], ["◇ línea continua", "agregación: el todo recibe la parte ya creada y la guarda en un atributo."], ["línea continua con flecha", "asociación navegable: la punta dice quién conoce a quién."], ["línea punteada con flecha", "dependencia: la usa como parámetro, variable local o retorno, sin guardarla."], ["▷ línea continua", "herencia (`extends`): «es un»."], ["▷ línea punteada", "implementación (`implements`) de una interfaz."], ["rótulo -nombre", "el nombre del atributo que materializa la relación."], ["1, 64, 0..1", "multiplicidad: cuántos objetos hay en ese extremo. 0..1 = puede ser null."], ["«create» «parameter» «return»", "estereotipos de dependencia: la crea con `new`, la recibe como parámetro, o la devuelve."], ["carpeta con pestaña", "paquete: agrupa clases. Los nuestros son `controlador`, `vista` y `modelo` (MVC)."]], "preg": [["¿Dónde está el MVC en el diagrama?", "En los tres paquetes. `controlador` (ControladorJuego y el main) tiene flechas hacia el modelo y hacia la vista; `vista` (VentanaAjedrez) solo tiene dependencias hacia el modelo; y del `modelo` no sale ninguna flecha hacia afuera: no conoce a nadie (Juego:3)."], ["Muéstreme dónde se crea en el código la relación entre Tablero y Casilla.", "En el atributo `private final Casilla[][] casillas` (Tablero:16). Las casillas se crean con `new Casilla(f, c)` en Tablero:24. Es composición porque el Tablero las crea, y la multiplicidad 64 sale de la matriz de 8 × 8."], ["¿Cuál es la diferencia entre composición y agregación aquí?", "Quién hace el `new`. Juego hace el `new Tablero()` (Juego:43) → composición. ControladorJuego recibe la ventana ya creada (ControladorJuego:48) → agregación. Casilla recibe la pieza con `setPieza` → agregación."], ["¿Cuál es la diferencia entre asociación y dependencia?", "Asociación = es un **atributo**: dura lo que dura el objeto, como `-juego` en ControladorJuego (ControladorJuego:33). Dependencia = la usa como **parámetro, variable local o retorno** y la suelta al terminar el método, como el Tablero que recibe `mostrarTablero` (VentanaAjedrez:111). Se dibuja punteada."], ["¿Por qué hay una dependencia entre VentanaAjedrez y el modelo?", "Nunca «porque depende». Recibe un Tablero como parámetro en `mostrarTablero` (VentanaAjedrez:111) y usa su método `getCasilla` (VentanaAjedrez:114). Son dos de las tres razones: usar un método de la otra clase, crear un objeto local de ella o recibirla como parámetro."], ["¿Por qué la vista no tiene flecha hacia ControladorJuego?", "Porque `agregarControlador` recibe un ActionListener (VentanaAjedrez:94): la vista solo conoce la interfaz. Es **bajo acoplamiento**: se puede cambiar el controlador sin tocar la vista."], ["¿Qué significa el triángulo con línea punteada?", "Implementación: `implements` de una interfaz. Hay dos: ControladorJuego implementa ActionListener y Pieza implementa Movible. Con línea continua sería herencia (`extends`), como VentanaAjedrez → JFrame y las seis piezas → Pieza."], ["¿Por qué Pieza está en cursiva?", "Porque es abstracta: tiene métodos abstractos (Pieza:87). Esos métodos también van en cursiva. Una clase con al menos un método abstracto tiene que ser abstracta."], ["¿Qué significa el # de Pieza?", "`protected`: lo ven la clase, sus subclases y las clases del mismo paquete. Las piezas usan `color` y `casilla` directamente."], ["¿Qué significa {readOnly}?", "Que el atributo es `final`: se asigna una vez y no cambia. Por ejemplo `fila` de Casilla (Casilla:17) o `vista` del controlador (ControladorJuego:35)."], ["¿Por qué unas cosas están subrayadas?", "Porque son `static`: pertenecen a la clase y no a cada objeto. El `main` (Ajedrez:21) y las constantes de color de la ventana (VentanaAjedrez:33)."], ["¿Por qué JButton y JLabel no tienen flecha y JFrame sí?", "JButton y JLabel son tipos de atributos de Java: quedan dentro de la caja. JFrame y ActionListener sí se dibujan porque la herencia y la implementación son parte del diseño: sin ellas no se entiende que la ventana es una ventana ni cómo llegan los clics."], ["¿Qué significa el 0..1 de `-seleccionada`?", "Que el controlador puede tener cero o una casilla escogida: cuando no hay ninguna, el atributo es `null`."], ["¿Por qué la línea de Juego a Casilla tiene dos rótulos?", "Porque Juego tiene dos atributos de tipo Casilla: `coronacionPendiente` y `objetivoAlPaso`. Hacen el mismo camino, por eso van en la misma línea con los dos nombres."], ["Si le paso este diagrama a otro programador, ¿puede construir el juego?", "Sí: dice qué atributos tiene cada clase y de qué tipo, quién crea a quién (rombos), cuántos hay (multiplicidades), qué métodos hay y con qué parámetros, y cómo se reparten las clases en el MVC. Lo único que no dice es el código de adentro de cada método."], ["¿Lo generaron con una herramienta que lee el código?", "No. Se hizo leyendo el código clase por clase y flecha por flecha. Por eso cada relación tiene su línea de código: por ejemplo, ControladorJuego → Casilla es una asociación porque existe el atributo `seleccionada`."]], "metodo": ["Lea la caja de arriba hacia abajo: nombre, atributos y métodos.", "Por cada atributo, pregunte si es de una clase nuestra. Si lo es, tiene que haber una flecha continua con ese nombre como rótulo.", "Por cada flecha continua, busque quién hace el `new`. Si lo hace el dueño, es rombo lleno (composición); si lo recibe ya hecho, es rombo vacío (agregación).", "Por cada flecha punteada, encuentre el parámetro, la variable local o el return que la causa.", "Por cada triángulo, diga si es `extends` (línea continua) o `implements` (punteada).", "Diga la multiplicidad en voz alta: «un Tablero tiene 64 Casillas».", "Mire los paquetes: el modelo no tiene ninguna flecha que salga hacia la vista o el controlador. Eso es el MVC.", "Termine con una frase: qué relación es, por qué y en qué línea está."], "ref": {"Ajedrez:22": "Juego juego = new Juego();", "Ajedrez:23": "VentanaAjedrez vista = new VentanaAjedrez();", "Ajedrez:25": "vista.setVisible(true);", "Ajedrez:24": "ControladorJuego controlador = new ControladorJuego(juego, vista);", "ControladorJuego:30": "public class ControladorJuego implements ActionListener {", "ControladorJuego:62": "public void actionPerformed(ActionEvent e) {", "ControladorJuego:33": "private Juego juego;", "ControladorJuego:47": "this.juego = juego;", "ControladorJuego:112": "juego = new Juego();", "ControladorJuego:35": "private final VentanaAjedrez vista;", "ControladorJuego:48": "this.vista = vista;", "ControladorJuego:37": "private Casilla seleccionada;", "ControladorJuego:94": "seleccionada = casilla;", "ControladorJuego:97": "seleccionada = null;", "VentanaAjedrez:30": "public class VentanaAjedrez extends JFrame {", "VentanaAjedrez:54": "setTitle(\"Ajedrez — DPOO\");", "VentanaAjedrez:94": "public void agregarControlador(ActionListener controlador) {", "VentanaAjedrez:97": "botones[f][c].addActionListener(controlador);", "VentanaAjedrez:111": "public void mostrarTablero(Tablero tablero, Casilla seleccionada, List<Casilla> destinos) {", "VentanaAjedrez:114": "Casilla casilla = tablero.getCasilla(f, c);", "VentanaAjedrez:176": "private String simbolo(Pieza pieza) {", "VentanaAjedrez:154": "public TipoPieza pedirPiezaCoronacion() {", "Juego:17": "private final Tablero tablero;", "Juego:43": "this.tablero = new Tablero();", "Tablero:16": "private final Casilla[][] casillas = new Casilla[8][8];", "Tablero:24": "casillas[f][c] = new Casilla(f,c);", "Casilla:21": "private Pieza pieza;", "Pieza:23": "protected Casilla casilla;", "Tablero:80": "colocarPieza(new Torre(Color.NEGRO),  0, 0);", "Juego:29": "private Casilla coronacionPendiente;", "Juego:36": "private Casilla objetivoAlPaso;", "Juego:152": "coronacionPendiente = destino;", "Juego:149": "objetivoAlPaso = tablero.getCasilla((origen.getFila() + destino.getFila()) / 2, origen.getColumna());", "Juego:19": "private Color turno;", "Juego:45": "this.turno = Color.BLANCO;", "Juego:155": "turno = turno.opuesto();", "Pieza:21": "protected Color color;", "Pieza:87": "public abstract TipoPieza getTipo();", "Peon:34": "return TipoPieza.PEON;", "Pieza:18": "public abstract class Pieza implements Movible {", "Movible:17": "public interface Movible {", "Peon:16": "public class Peon extends Pieza {", "Torre:13": "public class Torre extends Pieza {", "Peon:24": "super(color);", "Caballo:14": "public class Caballo extends Pieza {", "Alfil:14": "public class Alfil extends Pieza {", "Dama:13": "public class Dama extends Pieza {", "Rey:14": "public class Rey extends Pieza {", "Juego:3": "import java.util.ArrayList;", "Juego:4": "import java.util.List;", "ControladorJuego:126": "vista.mostrarTablero(juego.getTablero(), seleccionada, destinos);", "Casilla:17": "private final int fila;", "Ajedrez:21": "public static void main(String[] args) {", "VentanaAjedrez:33": "private static final Color CLARA = new Color(240, 217, 181);"}};
+const TIPO = {comp:"Composición", agr:"Agregación", asoc:"Asociación", dep:"Dependencia", her:"Herencia", imp:"Implementación"};
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function texto(t){
+  let h = esc(t).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  return h.replace(/\b(ControladorJuego|VentanaAjedrez|TipoPieza|Ajedrez|Tablero|Casilla|Caballo|Movible|Juego|Pieza|Torre|Alfil|Color|Peon|Dama|Rey):(\d+)\b/g, (m) =>
+    `<button class="u-ref" title="${esc(D.ref[m] || "")}">${m}</button>`);
+}
+function codigo(refs){
+  return `<pre class="u-codigo">${refs.map(r => `<b>${r}</b>${esc(D.ref[r] || "")}`).join("\n")}</pre>`;
+}
+function glifo(tipo){
+  const fin = `<polyline points="74,4 84,10 74,16" fill="none" stroke="currentColor" stroke-width="1.6"/>`;
+  const tri = `<polygon points="72,3 84,10 72,17" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/>`;
+  if (tipo === "asoc") return `<svg class="u-glifo" viewBox="0 0 86 20" aria-hidden="true"><line x1="2" y1="10" x2="83" y2="10" stroke="currentColor" stroke-width="1.6"/>${fin}</svg>`;
+  if (tipo === "her") return `<svg class="u-glifo" viewBox="0 0 86 20" aria-hidden="true"><line x1="2" y1="10" x2="72" y2="10" stroke="currentColor" stroke-width="1.6"/>${tri}</svg>`;
+  if (tipo === "imp") return `<svg class="u-glifo" viewBox="0 0 86 20" aria-hidden="true"><line x1="2" y1="10" x2="72" y2="10" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 4"/>${tri}</svg>`;
+  if (tipo === "dep") return `<svg class="u-glifo" viewBox="0 0 86 20" aria-hidden="true"><line x1="2" y1="10" x2="83" y2="10" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 4"/>${fin}</svg>`;
+  const rombo = `<polygon points="2,10 11,4 20,10 11,16" fill="${tipo === "comp" ? "currentColor" : "var(--surface)"}" stroke="currentColor" stroke-width="1.6"/>`;
+  return `<svg class="u-glifo" viewBox="0 0 86 20" aria-hidden="true"><line x1="20" y1="10" x2="83" y2="10" stroke="currentColor" stroke-width="1.6"/>${rombo}${fin}</svg>`;
+}
+const SIGNO = {comp:"◆→", agr:"◇→", asoc:"→", dep:"⇢", her:"—▷", imp:"┄▷"};
+const flechaTxt = r => `${r.de} ${SIGNO[r.tipo]} ${r.a}`;
+const POR_ID = Object.fromEntries(D.rel.map(r => [r.id, r]));
+const POR_CLASE = Object.fromEntries(D.clases.map(c => [c.n, c]));
+
+/* ---- Vistas ---- */
+const VISTAS = ["plano","clases","flechas","practicar","preguntas"];
+function vista(v, scroll){
+  if (!VISTAS.includes(v)) v = "plano";
+  for (const b of document.querySelectorAll(".u-tab")) b.setAttribute("aria-selected", b.dataset.v === v);
+  for (const s of VISTAS) document.getElementById("v-" + s).hidden = s !== v;
+  if (scroll) window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", () => vista(location.hash.slice(1), true));
+
+/* ---- El plano ---- */
+const hoja = document.getElementById("hoja"), panel = document.getElementById("panel");
+for (const g of hoja.querySelectorAll(".rel")){
+  for (const p of g.querySelectorAll("polyline.linea")){
+    const h = p.cloneNode(); h.setAttribute("class", "hit"); g.appendChild(h);
+  }
+  g.setAttribute("tabindex", "0");
+}
+for (const g of hoja.querySelectorAll(".clase")) g.setAttribute("tabindex", "0");
+
+function panelVacio(){
+  panel.innerHTML = `<h3>Toque una flecha</h3><p class="u-vacio">O escoja una de esta lista. Las continuas con rombo son atributos; las punteadas son dependencias.</p>
+    <div class="u-lista-rel">${D.rel.map(r => `<button class="u-chip" data-rel="${r.id}">${esc(flechaTxt(r))}${r.rol ? " " + esc(r.rol) : ""}</button>`).join("")}</div>`;
+}
+function marcar(sel){
+  for (const g of hoja.querySelectorAll(".rel,.clase")) g.classList.remove("on");
+  hoja.classList.toggle("atenua", !!sel);
+  if (sel) for (const id of sel) hoja.querySelector("#" + CSS.escape(id))?.classList.add("on");
+}
+function verRel(id){
+  const r = POR_ID[id]; if (!r) return;
+  marcar(["r-" + id]);
+  const mult = r.mult ? `<dt>Multiplicidad</dt><dd>${esc(r.mult[0])} ${esc(r.de)} — ${esc(r.mult[1])} ${esc(r.a)}</dd>` : "";
+  panel.innerHTML = `<div><span class="u-badge ${r.tipo}">${TIPO[r.tipo]}${r.est ? " " + esc(r.est) : ""}</span></div>
+    <h3 class="u-mono" style="font-family:var(--f-mono);font-size:17px">${esc(flechaTxt(r))}</h3>
+    <dl>${r.rol ? `<dt>Rótulo</dt><dd><code>${esc(r.rol)}</code>: el nombre del atributo</dd>` : ""}${mult}
+    <dt>Cómo se dice</dt><dd>${texto(r.leer)}</dd>
+    <dt>En el código</dt><dd>${texto(r.codigo)}${codigo(r.lineas)}</dd>
+    <dt>Por qué es esta relación</dt><dd>${texto(r.porque)}</dd></dl>
+    ${r.trampa ? `<div class="u-trampa"><span class="u-k" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600">Si pregunta</span>${texto(r.trampa)}</div>` : ""}
+    <button class="u-btn-plano" data-limpiar="1">Ver todas</button>`;
+}
+function verClase(n){
+  const c = POR_CLASE[n]; if (!c) return;
+  const sale = D.rel.filter(r => r.de === n || (r.des || []).includes(n)), llega = D.rel.filter(r => r.a === n);
+  marcar(["c-" + n, ...sale.map(r => "r-" + r.id), ...llega.map(r => "r-" + r.id)]);
+  const li = rs => rs.length ? rs.map(r => `<button class="u-chip" data-rel="${r.id}">${esc(flechaTxt(r))}${r.rol ? " " + esc(r.rol) : ""}</button>`).join("") : `<span class="u-vacio">ninguna</span>`;
+  panel.innerHTML = `<div><span class="u-badge comp" style="text-transform:none;letter-spacing:0;font-family:var(--f-mono)">${esc(c.paq)}</span></div>
+    <h3>${esc(n)}</h3><p style="margin:0">${texto(c.resumen)}</p>
+    <dl><dt>Flechas que salen</dt><dd class="u-lista-rel">${li(sale)}</dd>
+    <dt>Flechas que llegan</dt><dd class="u-lista-rel">${li(llega)}</dd></dl>
+    <button class="u-btn-plano" data-clase-ir="${esc(n)}">Leer la caja renglón por renglón</button>
+    <button class="u-btn-plano" data-limpiar="1">Ver todas</button>`;
+}
+hoja.addEventListener("click", e => {
+  const r = e.target.closest(".rel"); if (r){ verRel(r.id.slice(2)); return; }
+  const c = e.target.closest(".clase"); if (c){ verClase(c.id.slice(2)); }
+});
+hoja.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const g = e.target.closest(".rel,.clase"); if (!g) return;
+  e.preventDefault(); g.classList.contains("rel") ? verRel(g.id.slice(2)) : verClase(g.id.slice(2));
+});
+
+/* ---- Clase por clase ---- */
+let claseActual = "ControladorJuego";
+try { const g = localStorage.getItem("uml-aj-clase"); if (g && POR_CLASE[g]) claseActual = g; } catch(_){}
+function pintarClase(){
+  document.getElementById("selector").innerHTML = D.clases.map(c =>
+    `<button class="u-chip" data-sel="${c.n}" aria-pressed="${c.n === claseActual}">${c.n}</button>`).join("");
+  const c = POR_CLASE[claseActual];
+  const archivo = c.n;
+  const attrs = c.filas.filter(f => !f.uml.includes("(")), mets = c.filas.filter(f => f.uml.includes("("));
+  const enumTxt = c.filas.some(f => f.enum) ? " (aquí van los valores del enum)" : "";
+  const fila = f => `<div class="u-fila"><div class="u-uml ${f.est ? "est" : ""}">${esc(f.uml)}</div>
+      <div class="u-que"><span>${texto(f.lectura)}</span>${f.nota ? `<span class="u-nota">${texto(f.nota)}</span>` : ""}</div>
+      <div class="u-src">${f.ln ? `<button class="u-ref" title="${esc(f.codigo)}" style="align-self:flex-start">${archivo}:${f.ln}</button><pre class="u-codigo">${esc(f.codigo)}</pre>` : `<span class="u-vacio">${esc(f.codigo)}</span>`}</div></div>`;
+  document.getElementById("clase").innerHTML = `<div class="u-cab-clase"><span class="u-paq">paquete ${esc(c.paq)}</span><h3 style="font-size:24px">${esc(c.n)}</h3><p class="u-lead">${texto(c.resumen)}</p></div>
+    <div class="u-tabla">
+      <div class="u-fila titulo-fila"><div class="u-uml">${esc(c.n)}</div><div class="u-que"><span>${texto(c.cab)}</span></div><div class="u-src"><button class="u-ref" style="align-self:flex-start">${esc(c.decl)}</button></div></div>
+      <div class="u-fila"><div class="u-sep">Franja del medio: atributos${attrs.length ? enumTxt : " (vacía)"}</div></div>
+      ${attrs.map(fila).join("")}
+      <div class="u-fila"><div class="u-sep">Franja de abajo: constructor y métodos${mets.length ? "" : " (vacía)"}</div></div>
+      ${mets.map(fila).join("")}
+    </div>`;
+}
+
+/* ---- Las flechas ---- */
+function tarjeta(r){
+  return `<article class="u-card">
+    <div class="u-card-cab" style="color:var(--${r.tipo})">${glifo(r.tipo)}<h4 style="color:var(--ink)">${esc(flechaTxt(r))}</h4>
+      ${r.rol ? `<code>${esc(r.rol)}</code>` : ""}${r.est ? `<span class="u-badge dep">${esc(r.est)}</span>` : ""}${r.mult ? `<span class="u-badge ${r.tipo}">${esc(r.mult[0])} — ${esc(r.mult[1])}</span>` : ""}</div>
+    <p><span class="u-k">Cómo se dice</span>${texto(r.leer)}</p>
+    <div><span class="u-k">En el código</span>${texto(r.codigo)}</div>
+    ${codigo(r.lineas)}
+    <p><span class="u-k">Por qué es esta</span>${texto(r.porque)}</p>
+    ${r.trampa ? `<div class="u-trampa"><span class="u-k">Si pregunta</span>${texto(r.trampa)}</div>` : ""}
+    <button class="u-btn-plano" data-rel-ir="${r.id}">Verla en el plano</button>
+  </article>`;
+}
+function pintarFlechas(){
+  const grupo = (tipo, titulo, sub) => {
+    const rs = D.rel.filter(r => r.tipo === tipo);
+    return `<div class="u-grupo"><h3 style="color:var(--${tipo})">${glifo(tipo)}<span style="color:var(--ink)">${titulo} · ${rs.length}</span></h3><p class="u-lead">${sub}</p><div class="u-cards">${rs.map(tarjeta).join("")}</div></div>`;
+  };
+  document.getElementById("lista-flechas").innerHTML =
+    grupo("comp", "Composición", "Rombo <b>lleno</b> del lado del dueño. El dueño guarda la otra clase en un atributo <b>y la crea él</b> con <code>new</code>. Si se destruye el dueño, se destruye la parte.") +
+    grupo("agr", "Agregación", "Rombo <b>vacío</b> del lado del dueño. Guarda la otra clase en un atributo, pero <b>la recibe ya creada</b>.") +
+    grupo("asoc", "Asociación", "Línea <b>continua</b> con flecha y <b>sin rombo</b>. Es un atributo: la clase conoce a la otra, pero no es su dueña.") +
+    grupo("dep", "Dependencia", "Línea <b>punteada</b>. No hay atributo: la otra clase se usa como parámetro (<code>«parameter»</code>), se crea con <code>new</code> en una variable local (<code>«create»</code>) o se devuelve (<code>«return»</code>).") +
+    grupo("her", "Herencia", "Línea <b>continua</b> con <b>triángulo hueco</b> hacia la clase padre: <code>extends</code>. Se lee «es un».") +
+    grupo("imp", "Implementación", "Línea <b>punteada</b> con <b>triángulo hueco</b> hacia la interfaz: <code>implements</code>.") +
+    `<div class="u-grupo"><h3>Flechas que no hay (y por qué)</h3><p class="u-lead">Tan importante como saber las que hay. Un generador automático podría inventarse algunas de estas.</p>
+      <div class="u-nohay">${D.nohay.map(([a, b]) => `<div><b>${esc(a)}</b>${texto(b)}</div>`).join("")}</div></div>
+     <div class="u-grupo"><h3>La notación completa</h3><div class="u-notacion">${D.notacion.map(([a, b]) => `<div>${esc(a)}</div><div>${texto(b)}</div>`).join("")}</div></div>`;
+}
+
+/* ---- Practicar ---- */
+const TARJETAS = [
+  ...D.rel.map(r => ({q: `Explique la flecha ${flechaTxt(r)}${r.rol ? " (" + r.rol + ")" : ""}: qué relación es, por qué y en qué línea.`,
+     a: `<p><span class="u-badge ${r.tipo}">${TIPO[r.tipo]}${r.est ? " " + esc(r.est) : ""}</span></p><p>${texto(r.leer)}</p><p>${texto(r.codigo)}</p><p>${texto(r.porque)}</p>`})),
+  ...D.preg.map(([q, a]) => ({q, a: `<p>${texto(a)}</p>`})),
+  ...D.clases.map(c => ({q: `Lea en voz alta la caja de ${c.n}: cada atributo con su visibilidad, tipo y si es {readOnly}.`,
+     a: c.filas.filter(f => !f.uml.includes("(")).map(f => `<p><code>${esc(f.uml)}</code> — ${texto(f.lectura)}</p>`).join("") || "<p>No tiene atributos: la franja del medio va vacía.</p>"})),
+];
+let orden = TARJETAS.map((_, i) => i), pos = 0, sabidas = new Set();
+try { sabidas = new Set(JSON.parse(localStorage.getItem("uml-aj-sabidas") || "[]")); } catch(_){}
+function guardarSabidas(){ try { localStorage.setItem("uml-aj-sabidas", JSON.stringify([...sabidas])); } catch(_){} }
+function pintarTarjeta(mostrar){
+  const i = orden[pos], t = TARJETAS[i];
+  document.getElementById("practica").innerHTML = `
+    <p class="u-progreso">Tarjeta ${pos + 1} de ${TARJETAS.length} · ${sabidas.size} marcadas como sabidas</p>
+    <div class="u-tarjeta"><span class="u-n">${sabidas.has(i) ? "✓ ya le salió antes" : "pendiente"}</span>
+      <div class="u-q">${texto(t.q)}</div>
+      ${mostrar ? `<div class="u-resp">${t.a}</div>` : ""}
+      <div class="u-acciones">
+        ${mostrar ? `<button class="u-btn prim" data-p="bien">Me salió</button><button class="u-btn" data-p="otra">Repetir después</button>`
+                  : `<button class="u-btn prim" data-p="ver">Mostrar la respuesta</button>`}
+        <button class="u-btn" data-p="sig">Saltar</button>
+        <button class="u-btn" data-p="mezclar">Mezclar</button>
+      </div></div>`;
+}
+function practicar(acc){
+  const i = orden[pos];
+  if (acc === "ver") return pintarTarjeta(true);
+  if (acc === "bien"){ sabidas.add(i); guardarSabidas(); }
+  if (acc === "otra"){ sabidas.delete(i); guardarSabidas(); orden.push(orden.splice(pos, 1)[0]); pos = Math.min(pos, orden.length - 1); return pintarTarjeta(false); }
+  if (acc === "mezclar"){ for (let k = orden.length - 1; k > 0; k--){ const j = Math.floor(Math.random() * (k + 1)); [orden[k], orden[j]] = [orden[j], orden[k]]; } pos = 0; return pintarTarjeta(false); }
+  pos = (pos + 1) % orden.length; pintarTarjeta(false);
+}
+
+/* ---- Preguntas ---- */
+function pintarPreguntas(){
+  document.getElementById("metodo").innerHTML = D.metodo.map(m => `<li>${texto(m)}</li>`).join("");
+  document.getElementById("lista-preguntas").innerHTML = D.preg.map(([q, a]) =>
+    `<details class="u-preg"><summary>${esc(q)}</summary><div><p>${texto(a)}</p></div></details>`).join("");
+}
+
+/* ---- Eventos ---- */
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.v){ location.hash = b.dataset.v; vista(b.dataset.v, true); return; }
+  if (b.dataset.rel){ verRel(b.dataset.rel); return; }
+  if (b.dataset.limpiar){ marcar(null); panelVacio(); return; }
+  if (b.dataset.sel){ claseActual = b.dataset.sel; try { localStorage.setItem("uml-aj-clase", claseActual); } catch(_){} pintarClase(); return; }
+  if (b.dataset.claseIr){ claseActual = b.dataset.claseIr; pintarClase(); location.hash = "clases"; vista("clases", true); return; }
+  if (b.dataset.relIr){ location.hash = "plano"; vista("plano", false); verRel(b.dataset.relIr); document.getElementById("hoja").scrollIntoView({block:"start"}); return; }
+  if (b.dataset.p){ practicar(b.dataset.p); }
+});
+
+panelVacio(); pintarClase(); pintarFlechas(); pintarTarjeta(false); pintarPreguntas();
+vista(location.hash.slice(1), false);
+</script>
+</body></html>

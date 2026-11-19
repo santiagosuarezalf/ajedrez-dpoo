@@ -1,4 +1,4 @@
-package mundo;
+package modelo;
 
 /**
  * Clase abstracta que reúne lo que tienen en común todas las piezas: su color, la casilla donde

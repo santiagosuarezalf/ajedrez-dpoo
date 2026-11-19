@@ -1,4 +1,4 @@
-package mundo;
+package modelo;
 
 /**
  * Representa los dos bandos de una partida de ajedrez: las piezas blancas y las negras.

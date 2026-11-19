@@ -1,4 +1,4 @@
-package mundo;
+package modelo;
 
 /**
  * El tablero de 8×8. Crea sus 64 casillas al construirse y no existen fuera de él (composición).

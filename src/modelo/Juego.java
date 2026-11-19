@@ -1,5 +1,6 @@
-package mundo;
+package modelo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -381,24 +382,25 @@ public class Juego {
       }
      }
      /**
-      * Revisa si la jugada es un enroque y, si lo es y cumple todas las condiciones, lo hace.
-      * El enroque se indica moviendo el rey dos casillas hacia la torre. Verifica, en este orden:
+      * Revisa si mover de {@code origen} a {@code destino} sería un enroque válido, <b>sin
+      * hacerlo</b>. El enroque se indica moviendo el rey dos casillas hacia la torre. Verifica, en
+      * este orden:
       * <ol>
       *   <li>Que la pieza sea el rey y que no se haya movido nunca.</li>
-      *   <li>Que vaya dos columnas hacia un lado, en la misma fila.</li>
+      *   <li>Que vaya dos columnas hacia un lado, en la misma fila, a una casilla vacía.</li>
       *   <li>Que el rey no esté en jaque.</li>
       *   <li>Que en la esquina de ese lado esté una torre que tampoco se haya movido.</li>
       *   <li>Que todas las casillas entre el rey y la torre estén vacías.</li>
       *   <li>Que el rey no pase por una casilla atacada ni termine en una.</li>
       * </ol>
-      * Si cumple todo, mueve el rey dos casillas y pone la torre en la casilla que el rey
-      * atravesó: enroque corto hacia la columna h, largo hacia la columna a.
+      * Está separado de {@link #intentarEnroque} para que la vista pueda marcar el enroque como
+      * jugada posible antes de que el jugador lo haga.
       *
       * @param origen casilla donde está la pieza
       * @param destino casilla a donde se quiere mover
-      * @return {@code true} si era un enroque válido y se hizo; {@code false} en otro caso
+      * @return {@code true} si es un enroque que cumple todas las condiciones
       */
-public boolean intentarEnroque(Casilla origen, Casilla destino){
+private boolean esEnroqueValido(Casilla origen, Casilla destino){
     Pieza rey = origen.getPieza();
     if (rey == null || rey.getTipo() != TipoPieza.REY){
         return false;
@@ -446,10 +448,76 @@ public boolean intentarEnroque(Casilla origen, Casilla destino){
         }
     }
 
+    return true;
+}
+
+     /**
+      * Si la jugada es un enroque válido ({@link #esEnroqueValido}), lo hace: mueve el rey dos
+      * casillas y pone la torre en la casilla que el rey atravesó (enroque corto hacia la columna
+      * h, largo hacia la columna a). Después cambia el turno y revisa si la partida terminó.
+      *
+      * @param origen casilla donde está la pieza
+      * @param destino casilla a donde se quiere mover
+      * @return {@code true} si era un enroque válido y se hizo; {@code false} en otro caso
+      */
+public boolean intentarEnroque(Casilla origen, Casilla destino){
+    if (!esEnroqueValido(origen, destino)){
+        return false;
+    }
+    int fila = origen.getFila();
+    boolean corto = destino.getColumna() > origen.getColumna();
+    int paso = corto ? 1 : -1;
+    Casilla casillaTorre = tablero.getCasilla(fila, corto ? 7 : 0);
     tablero.moverPieza(origen, destino);
     tablero.moverPieza(casillaTorre, tablero.getCasilla(fila, origen.getColumna() + paso));
     turno = turno.opuesto();
     verificarFinDePartida();
     return true;
 }
+
+  /**
+   * Devuelve las casillas a las que la pieza de {@code origen} puede ir <b>legalmente</b> en
+   * esta jugada: sus movimientos posibles que no dejan al propio rey en jaque, más la captura
+   * al paso y el enroque si están disponibles. Es la misma lista de reglas que usa
+   * {@link #mover}, pero sin mover nada: la vista la usa para marcar en el tablero a dónde se
+   * puede jugar.
+   *
+   * <p>Va en {@code Juego} y no en la vista porque es <b>Experto en información</b> (GRASP):
+   * solo {@code Juego} sabe de quién es el turno, cuál fue el doble paso anterior y cómo se
+   * revisa el jaque.</p>
+   *
+   * @param origen casilla donde está la pieza
+   * @return las casillas de destino legales; vacía si no hay pieza del jugador en turno, si la
+   *         partida terminó o si hay una coronación pendiente
+   */
+  public List<Casilla> movimientosLegales(Casilla origen){
+    List<Casilla> legales = new ArrayList<>();
+    if (terminado || coronacionPendiente != null || origen == null){
+      return legales;
+    }
+    Pieza pieza = origen.getPieza();
+    if (pieza == null || pieza.getColor() != turno){
+      return legales;
+    }
+    for (Casilla destino : pieza.getMovimientosPosibles(tablero)){
+      if (!dejaReyEnJaque(origen, destino)){
+        legales.add(destino);
+      }
+    }
+    if (objetivoAlPaso != null && esCapturaAlPaso(origen, objetivoAlPaso)
+        && !dejaReyEnJaque(origen, objetivoAlPaso)){
+      legales.add(objetivoAlPaso);
+    }
+    if (pieza.getTipo() == TipoPieza.REY){
+      int fila = origen.getFila();
+      int col = origen.getColumna();
+      if (col + 2 < 8 && esEnroqueValido(origen, tablero.getCasilla(fila, col + 2))){
+        legales.add(tablero.getCasilla(fila, col + 2));
+      }
+      if (col - 2 >= 0 && esEnroqueValido(origen, tablero.getCasilla(fila, col - 2))){
+        legales.add(tablero.getCasilla(fila, col - 2));
+      }
+    }
+    return legales;
+  }
   }

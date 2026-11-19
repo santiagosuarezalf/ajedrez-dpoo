@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>
+<title>UML Batalla Naval</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: barra de pestañas fija arriba; cada vista es una columna de lectura, y "El plano" usa el ancho completo con el panel de explicación al lado. Todas las clases llevan prefijo u- porque el SVG trae sus propios estilos globales. */
+:root{
+  --bg:#F5F6F2; --surface:#FFFFFF; --ink:#16201B; --muted:#5A6660; --line:#D9DED6;
+  --accent:#1F5C46; --accent-soft:#E2EEE7; --comp:#1F5C46; --agr:#8A5A12; --agr-soft:#F6ECDA;
+  --dep:#3B4F8F; --dep-soft:#E4E9F6; --warn:#A33A1D; --warn-soft:#F8E6DF; --paper:#FFFFFF;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111613; --surface:#18201C; --ink:#E6ECE7; --muted:#9AA79F; --line:#2B3530;
+  --accent:#7CC4A4; --accent-soft:#1D3229; --comp:#7CC4A4; --agr:#E0B062; --agr-soft:#33291A;
+  --dep:#9DB0EC; --dep-soft:#1F2640; --warn:#F09A7C; --warn-soft:#3A2119; --paper:#EEF1EC; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111613; --surface:#18201C; --ink:#E6ECE7; --muted:#9AA79F; --line:#2B3530;
+  --accent:#7CC4A4; --accent-soft:#1D3229; --comp:#7CC4A4; --agr:#E0B062; --agr-soft:#33291A;
+  --dep:#9DB0EC; --dep-soft:#1F2640; --warn:#F09A7C; --warn-soft:#3A2119; --paper:#EEF1EC; color-scheme:dark}
+
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+code,.u-mono{font-family:var(--f-mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.2;margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.u-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.u-top-in,.u-wrap{max-width:1560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.u-top-in{display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;padding-block:10px}
+.u-marca{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.u-marca h1{font-size:21px}
+.u-marca span{color:var(--muted);font-size:13px}
+.u-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.u-tab{border:0;background:none;padding:7px 12px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500}
+.u-tab[aria-selected="true"]{background:var(--accent);color:var(--surface)}
+.u-tab:hover:not([aria-selected="true"]){background:var(--accent-soft);color:var(--ink)}
+
+.u-wrap{padding-block:24px 64px;display:flex;flex-direction:column;gap:22px}
+.u-cita{margin:0;border-left:3px solid var(--accent);padding:2px 0 2px 14px;color:var(--muted);max-width:75ch}
+.u-cita q{font-style:italic;color:var(--ink)}
+.u-lead{color:var(--muted);max-width:75ch;margin:0}
+.u-cards,.u-tabla,.u-nohay,.u-notacion{max-width:1240px}
+section h2{font-size:26px}
+
+/* El plano */
+.u-plano{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.u-hoja{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+.u-hoja svg{display:block;width:100%;height:auto}
+.u-hoja .rel,.u-hoja .clase{cursor:pointer}
+.u-hoja .rel .hit{stroke:transparent;stroke-width:16;fill:none}
+.u-hoja .rel:hover .linea,.u-hoja .rel:hover .punta{stroke:#2a7a5c}
+.u-hoja .rel.on .linea,.u-hoja .rel.on .punta{stroke:#C2410C;stroke-width:3}
+.u-hoja .rel.on polygon.lleno{fill:#C2410C;stroke:#C2410C}
+.u-hoja .rel.on polygon.hueco{stroke:#C2410C;stroke-width:2.4}
+.u-hoja .clase.on .caja{stroke:#C2410C;stroke-width:3}
+.u-hoja .clase:hover .caja{stroke:#2a7a5c;stroke-width:2}
+.u-hoja.atenua .rel:not(.on){opacity:.28}
+.u-panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 100px);overflow:auto}
+.u-panel h3{font-size:20px}
+.u-panel dl{margin:0;display:flex;flex-direction:column;gap:10px}
+.u-panel dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.u-panel dd{margin:2px 0 0}
+.u-vacio{color:var(--muted)}
+.u-lista-rel{display:flex;flex-wrap:wrap;gap:6px}
+
+.u-badge{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px}
+.u-badge.comp{background:var(--accent-soft);color:var(--comp)}
+.u-badge.agr{background:var(--agr-soft);color:var(--agr)}
+.u-badge.dep{background:var(--dep-soft);color:var(--dep)}
+.u-chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 11px;cursor:pointer;font-size:13px}
+.u-chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.u-chip:hover{border-color:var(--accent)}
+
+.u-ref{font-family:var(--f-mono);font-size:.82em;background:var(--accent-soft);color:var(--accent);border:0;border-radius:4px;padding:1px 5px;cursor:help}
+.u-codigo{font-family:var(--f-mono);font-size:12.5px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;overflow-x:auto;white-space:pre;margin:0}
+.u-codigo b{color:var(--muted);font-weight:400;margin-right:10px}
+
+/* Clase por clase */
+.u-selector{display:flex;flex-wrap:wrap;gap:6px}
+.u-cab-clase{display:flex;flex-direction:column;gap:6px}
+.u-cab-clase .u-paq{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.u-tabla{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.u-fila{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.35fr) minmax(0,1fr);border-top:1px solid var(--line)}
+.u-fila:first-child{border-top:0}
+.u-fila>div{padding:12px 14px;min-width:0}
+.u-fila .u-uml{font-family:var(--f-mono);font-size:13px;background:var(--bg);overflow-wrap:anywhere}
+.u-fila .u-uml.est{text-decoration:underline}
+.u-fila .u-que{font-size:14px;display:flex;flex-direction:column;gap:6px}
+.u-fila .u-que .u-nota{color:var(--muted)}
+.u-fila .u-src{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.u-fila.titulo-fila .u-uml{font-weight:600;text-align:center;font-family:var(--f-display);font-size:15px}
+.u-sep{grid-column:1/-1;padding:4px 14px!important;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--bg);font-weight:600}
+
+/* Flechas */
+.u-grupo{display:flex;flex-direction:column;gap:12px}
+.u-grupo>h3{font-size:19px;display:flex;align-items:center;gap:10px}
+.u-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));gap:14px}
+.u-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.u-card-cab{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.u-card-cab h4{margin:0;font:600 16px var(--f-mono)}
+.u-glifo{width:86px;height:20px;flex:none}
+.u-card p{margin:0}
+.u-card .u-k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block}
+.u-trampa{background:var(--warn-soft);border-radius:8px;padding:10px 12px;font-size:14px}
+.u-trampa .u-k{color:var(--warn)}
+.u-btn-plano{align-self:flex-start;border:1px solid var(--line);background:none;border-radius:7px;padding:4px 10px;cursor:pointer;font-size:13px}
+.u-btn-plano:hover{border-color:var(--accent);color:var(--accent)}
+.u-nohay{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:10px}
+.u-nohay div{background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:14px}
+.u-nohay b{font-family:var(--f-mono);font-size:13px;display:block;text-decoration:line-through;text-decoration-color:var(--warn)}
+.u-notacion{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.u-notacion div{padding:8px 12px;border-top:1px solid var(--line);font-size:14px}
+.u-notacion div:nth-child(-n+2){border-top:0}
+.u-notacion div:nth-child(odd){font-family:var(--f-mono);font-size:13px;background:var(--bg);white-space:nowrap}
+
+/* Practicar */
+.u-practica{display:flex;flex-direction:column;gap:14px;max-width:820px}
+.u-tarjeta{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.u-tarjeta .u-n{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.u-tarjeta .u-q{font:600 21px/1.3 var(--f-display)}
+.u-resp{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.u-acciones{display:flex;flex-wrap:wrap;gap:8px}
+.u-btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500}
+.u-btn.prim{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.u-btn:hover{border-color:var(--accent)}
+.u-progreso{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+
+/* Preguntas */
+.u-metodo{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;max-width:75ch}
+details.u-preg{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:880px}
+details.u-preg summary{cursor:pointer;padding:12px 16px;font-weight:600}
+details.u-preg div{padding:0 16px 14px}
+
+@media (max-width:980px){
+  .u-plano{grid-template-columns:minmax(0,1fr)}
+  .u-panel{position:static;max-height:none}
+  .u-hoja svg{min-width:900px}
+}
+@media (max-width:760px){
+  .u-fila{grid-template-columns:minmax(0,1fr)}
+  .u-fila .u-uml{border-bottom:1px dashed var(--line)}
+  .u-tabs{margin-left:0}
+  .u-notacion{grid-template-columns:minmax(0,1fr)}
+  .u-notacion div:nth-child(odd){white-space:normal;border-top:1px solid var(--line)}
+  .u-notacion div:nth-child(even){border-top:0}
+}
+@media (prefers-reduced-motion:no-preference){.u-tarjeta{transition:border-color .2s}}
+</style>
+
+<header class="u-top">
+  <div class="u-top-in">
+    <div class="u-marca"><h1>UML Batalla Naval</h1><span>diagrama de clases línea por línea · commit e280e9e · DPOO corte II</span></div>
+    <nav class="u-tabs" role="tablist" aria-label="Secciones">
+      <button class="u-tab" role="tab" data-v="plano" aria-selected="true">El plano</button>
+      <button class="u-tab" role="tab" data-v="clases" aria-selected="false">Clase por clase</button>
+      <button class="u-tab" role="tab" data-v="flechas" aria-selected="false">Las flechas</button>
+      <button class="u-tab" role="tab" data-v="practicar" aria-selected="false">Practicar</button>
+      <button class="u-tab" role="tab" data-v="preguntas" aria-selected="false">Preguntas de Navarro</button>
+    </nav>
+  </div>
+</header>
+
+<main class="u-wrap">
+  <p class="u-cita"><q>Es como si un arquitecto o un ingeniero no pudiera interpretar un plano. El UML es su plano: usted construye a partir de eso.</q> — Navarro, sustentación del ajedrez, 23 de octubre</p>
+
+  <section id="v-plano" class="u-grupo">
+    <h2>El plano</h2>
+    <p class="u-lead">Toque una flecha o una clase. A la derecha sale qué relación es, cómo se lee en voz alta y en qué línea del código está. El diagrama es el mismo que se entrega en PDF.</p>
+    <div class="u-plano">
+      <div class="u-hoja" id="hoja"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 1330" id="diagrama-svg" role="img" aria-label="Diagrama de clases de Batalla Naval"><style>
+.caja{fill:#fff;stroke:#111;stroke-width:1.3}
+.borde{stroke:#111;stroke-width:1}
+.nombre{font:700 14px Helvetica,Arial,sans-serif}
+.mb{font:13px Menlo,monospace;fill:#111}
+.sub{text-decoration:underline}
+.pq{fill:#f6f8fb;stroke:#8a96a8;stroke-width:1}
+.pq-tab{fill:#e6ebf2;stroke:#8a96a8;stroke-width:1}
+.pq-n{font:600 12px Menlo,monospace;fill:#3b4a60}
+.linea{fill:none;stroke:#111;stroke-width:1.3}
+.punteada{stroke-dasharray:6 4}
+.punta{fill:none;stroke:#111;stroke-width:1.3}
+.lleno{fill:#111;stroke:#111}
+.hueco{fill:#fff;stroke:#111;stroke-width:1.3}
+.mult{font:12px Helvetica,Arial,sans-serif}
+.rol{font:12px Menlo,monospace;fill:#333}
+.et{font:12px Helvetica,Arial,sans-serif;fill:#333}
+.titulo{font:700 22px Helvetica,Arial,sans-serif}
+.sub-t{font:13px Helvetica,Arial,sans-serif;fill:#444}
+.ley{font:13px Helvetica,Arial,sans-serif;fill:#333}
+</style><rect width="2000" height="1330" fill="#fff"/><text x="40" y="44" class="titulo">Diagrama de clases — Batalla Naval en consola · Diseño y Programación Orientados a Objetos · Corte II</text>
+<text x="40" y="70" class="sub-t">Juan José Betancourt Quintero (67001968) · Santiago Suárez Alfonso (67001862) · paquetes batallanaval, controlador, vista y modelo</text>
+<path d="M30,96 h110.80000000000001 v22 h-110.80000000000001 z" class="pq-tab"/>
+<rect x="30" y="118" width="285" height="105" class="pq"/>
+<text x="40" y="112" class="pq-n">batallanaval</text>
+<path d="M380,96 h199.60000000000002 v22 h-199.60000000000002 z" class="pq-tab"/>
+<rect x="380" y="118" width="654" height="277" class="pq"/>
+<text x="390" y="112" class="pq-n">batallanaval.controlador</text>
+<path d="M1280,96 h155.20000000000002 v22 h-155.20000000000002 z" class="pq-tab"/>
+<rect x="1280" y="118" width="694" height="260" class="pq"/>
+<text x="1290" y="112" class="pq-n">batallanaval.vista</text>
+<path d="M30,566 h162.6 v22 h-162.6 z" class="pq-tab"/>
+<rect x="30" y="588" width="1850" height="622" class="pq"/>
+<text x="40" y="582" class="pq-n">batallanaval.modelo</text>
+<g class="clase" id="c-BatallaNaval">
+<rect x="50" y="130" width="245" height="73" class="caja"/>
+<text x="172.5" y="152" class="nombre" text-anchor="middle">BatallaNaval</text>
+<line x1="50" y1="164" x2="295" y2="164" class="borde"/>
+
+<text x="60" y="191" class="mb sub">+ main(args: String[]): void</text>
+</g>
+<g class="clase" id="c-Juego">
+<rect x="400" y="130" width="614" height="245" class="caja"/>
+<text x="707.0" y="152" class="nombre" text-anchor="middle">Juego</text>
+<line x1="400" y1="164" x2="1014" y2="164" class="borde"/>
+<text x="410" y="181" class="mb">- jugador: Jugador</text>
+<text x="410" y="198" class="mb">- computador: Jugador</text>
+<text x="410" y="215" class="mb">- interfaz: Interfaz {readOnly}</text>
+<text x="410" y="232" class="mb">- azar: Random {readOnly}</text>
+<line x1="400" y1="238" x2="1014" y2="238" class="borde"/>
+<text x="410" y="261" class="mb">+ Juego()</text>
+<text x="410" y="278" class="mb">+ iniciar(): void</text>
+<text x="410" y="295" class="mb">- turnoJugador(): void</text>
+<text x="410" y="312" class="mb">- turnoComputador(): void</text>
+<text x="410" y="329" class="mb">- disparar(atacante: Jugador, objetivo: Tablero, disparo: Coordenada): void</text>
+<text x="410" y="346" class="mb">- hayGanador(): boolean</text>
+<text x="410" y="363" class="mb">- terminar(): void</text>
+</g>
+<g class="clase" id="c-Interfaz">
+<rect x="1300" y="130" width="654" height="228" class="caja"/>
+<text x="1627.0" y="152" class="nombre" text-anchor="middle">Interfaz</text>
+<line x1="1300" y1="164" x2="1954" y2="164" class="borde"/>
+<text x="1310" y="181" class="mb">- teclado: Scanner {readOnly}</text>
+<line x1="1300" y1="187" x2="1954" y2="187" class="borde"/>
+<text x="1310" y="210" class="mb">+ Interfaz()</text>
+<text x="1310" y="227" class="mb">+ mostrarMensaje(mensaje: String): void</text>
+<text x="1310" y="244" class="mb">+ mostrarBienvenida(): void</text>
+<text x="1310" y="261" class="mb">+ pedirNombre(): String</text>
+<text x="1310" y="278" class="mb">+ pedirTamano(): int</text>
+<text x="1310" y="295" class="mb">+ pedirCoordenada(tamano: int): Coordenada</text>
+<text x="1310" y="312" class="mb">- leerNumeroEntre(pregunta: String, minimo: int, maximo: int): int</text>
+<text x="1310" y="329" class="mb">+ mostrarTablero(titulo: String, tablero: Tablero, mostrarBarcos: boolean): void</text>
+<text x="1310" y="346" class="mb">+ mostrarEstadisticas(jugador: Jugador, tableroRival: Tablero): void</text>
+</g>
+<g class="clase" id="c-Jugador">
+<rect x="110" y="600" width="379" height="245" class="caja"/>
+<text x="299.5" y="622" class="nombre" text-anchor="middle">Jugador</text>
+<line x1="110" y1="634" x2="489" y2="634" class="borde"/>
+<text x="120" y="651" class="mb">- nombre: String {readOnly}</text>
+<text x="120" y="668" class="mb">- tablero: Tablero {readOnly}</text>
+<text x="120" y="685" class="mb">- aciertos: int</text>
+<text x="120" y="702" class="mb">- fallos: int</text>
+<line x1="110" y1="708" x2="489" y2="708" class="borde"/>
+<text x="120" y="731" class="mb">+ Jugador(nombre: String, tamanoTablero: int)</text>
+<text x="120" y="748" class="mb">+ sumarAcierto(): void</text>
+<text x="120" y="765" class="mb">+ sumarFallo(): void</text>
+<text x="120" y="782" class="mb">+ getNombre(): String</text>
+<text x="120" y="799" class="mb">+ getTablero(): Tablero</text>
+<text x="120" y="816" class="mb">+ getAciertos(): int</text>
+<text x="120" y="833" class="mb">+ getFallos(): int</text>
+</g>
+<g class="clase" id="c-Tablero">
+<rect x="660" y="600" width="465" height="364" class="caja"/>
+<text x="892.5" y="622" class="nombre" text-anchor="middle">Tablero</text>
+<line x1="660" y1="634" x2="1125" y2="634" class="borde"/>
+<text x="670" y="651" class="mb sub">+ CANTIDAD_BARCOS: int = 5 {readOnly}</text>
+<text x="670" y="668" class="mb sub">+ AGUA: char = &#x27;~&#x27; {readOnly}</text>
+<text x="670" y="685" class="mb sub">+ BARCO: char = &#x27;B&#x27; {readOnly}</text>
+<text x="670" y="702" class="mb sub">+ TOCADO: char = &#x27;X&#x27; {readOnly}</text>
+<text x="670" y="719" class="mb sub">+ FALLO: char = &#x27;O&#x27; {readOnly}</text>
+<text x="670" y="736" class="mb">- tamano: int {readOnly}</text>
+<text x="670" y="753" class="mb">- celdas: char[][] {readOnly}</text>
+<text x="670" y="770" class="mb">- barcos: Barco[] {readOnly}</text>
+<line x1="660" y1="776" x2="1125" y2="776" class="borde"/>
+<text x="670" y="799" class="mb">+ Tablero(tamano: int)</text>
+<text x="670" y="816" class="mb">+ colocarBarcos(): void</text>
+<text x="670" y="833" class="mb">+ recibirDisparo(disparo: Coordenada): boolean</text>
+<text x="670" y="850" class="mb">- buscarBarco(disparo: Coordenada): Barco</text>
+<text x="670" y="867" class="mb">+ yaDisparado(disparo: Coordenada): boolean</text>
+<text x="670" y="884" class="mb">+ barcosRestantes(): int</text>
+<text x="670" y="901" class="mb">+ todosHundidos(): boolean</text>
+<text x="670" y="918" class="mb">+ celdasSinDisparar(): int</text>
+<text x="670" y="935" class="mb">+ getCelda(f: int, c: int, mostrarBarcos: boolean): char</text>
+<text x="670" y="952" class="mb">+ getTamano(): int</text>
+</g>
+<g class="clase" id="c-Barco">
+<rect x="1340" y="600" width="316" height="160" class="caja"/>
+<text x="1498.0" y="622" class="nombre" text-anchor="middle">Barco</text>
+<line x1="1340" y1="634" x2="1656" y2="634" class="borde"/>
+<text x="1350" y="651" class="mb">- posicion: Coordenada {readOnly}</text>
+<text x="1350" y="668" class="mb">- hundido: boolean</text>
+<line x1="1340" y1="674" x2="1656" y2="674" class="borde"/>
+<text x="1350" y="697" class="mb">+ Barco(posicion: Coordenada)</text>
+<text x="1350" y="714" class="mb">+ getPosicion(): Coordenada</text>
+<text x="1350" y="731" class="mb">+ isHundido(): boolean</text>
+<text x="1350" y="748" class="mb">+ hundir(): void</text>
+</g>
+<g class="clase" id="c-Coordenada">
+<rect x="1340" y="1000" width="316" height="160" class="caja"/>
+<text x="1498.0" y="1022" class="nombre" text-anchor="middle">Coordenada</text>
+<line x1="1340" y1="1034" x2="1656" y2="1034" class="borde"/>
+<text x="1350" y="1051" class="mb">- fila: int {readOnly}</text>
+<text x="1350" y="1068" class="mb">- columna: int {readOnly}</text>
+<line x1="1340" y1="1074" x2="1656" y2="1074" class="borde"/>
+<text x="1350" y="1097" class="mb">+ Coordenada(fila: int, columna: int)</text>
+<text x="1350" y="1114" class="mb">+ getFila(): int</text>
+<text x="1350" y="1131" class="mb">+ getColumna(): int</text>
+<text x="1350" y="1148" class="mb">+ toString(): String</text>
+</g>
+<g class="rel" id="r-BatallaNaval-Juego">
+<polyline points="295,170 400,170" class="linea punteada"/>
+<polyline points="388,176 400,170 388,164" class="punta"/>
+</g>
+<text x="347.5" y="162" class="et" text-anchor="middle">«local»</text>
+<g class="rel" id="r-Juego-Interfaz">
+<polygon points="1014.0,170.0 1023.0,177.0 1032.0,170.0 1023.0,163.0" class="lleno"/>
+<polyline points="1032,170 1300,170" class="linea"/>
+<polyline points="1288,176 1300,170 1288,164" class="punta"/>
+</g>
+<text x="1022" y="188" class="mult" text-anchor="start">1</text>
+<text x="1286" y="160" class="mult" text-anchor="end">1</text>
+<text x="1292" y="188" class="rol" text-anchor="end">-interfaz</text>
+<g class="rel" id="r-Juego-Jugador-jugador">
+<polygon points="420.0,375.0 413.0,384.0 420.0,393.0 427.0,384.0" class="lleno"/>
+<polyline points="420,393 420,600" class="linea"/>
+<polyline points="414,588 420,600 426,588" class="punta"/>
+</g>
+<text x="412" y="405" class="mult" text-anchor="end">1</text>
+<text x="412" y="590" class="mult" text-anchor="end">1</text>
+<text x="412" y="572" class="rol" text-anchor="end">-jugador</text>
+<g class="rel" id="r-Juego-Jugador-computador">
+<polygon points="469.0,375.0 462.0,384.0 469.0,393.0 476.0,384.0" class="lleno"/>
+<polyline points="469,393 469,600" class="linea"/>
+<polyline points="463,588 469,600 475,588" class="punta"/>
+</g>
+<text x="477" y="405" class="mult" text-anchor="start">1</text>
+<text x="477" y="590" class="mult" text-anchor="start">1</text>
+<text x="477" y="572" class="rol" text-anchor="start">-computador</text>
+<g class="rel" id="r-Jugador-Tablero">
+<polygon points="489.0,650.0 498.0,657.0 507.0,650.0 498.0,643.0" class="lleno"/>
+<polyline points="507,650 660,650" class="linea"/>
+<polyline points="648,656 660,650 648,644" class="punta"/>
+</g>
+<text x="497" y="668" class="mult" text-anchor="start">1</text>
+<text x="652" y="642" class="mult" text-anchor="end">1</text>
+<text x="652" y="668" class="rol" text-anchor="end">-tablero</text>
+<g class="rel" id="r-Tablero-Barco">
+<polygon points="1125.0,650.0 1134.0,657.0 1143.0,650.0 1134.0,643.0" class="lleno"/>
+<polyline points="1143,650 1340,650" class="linea"/>
+<polyline points="1328,656 1340,650 1328,644" class="punta"/>
+</g>
+<text x="1133" y="668" class="mult" text-anchor="start">1</text>
+<text x="1332" y="642" class="mult" text-anchor="end">5</text>
+<text x="1332" y="668" class="rol" text-anchor="end">-barcos</text>
+<g class="rel" id="r-Barco-Coordenada">
+<polygon points="1498.0,760.0 1491.0,769.0 1498.0,778.0 1505.0,769.0" class="hueco"/>
+<polyline points="1498.0,778 1498.0,1000" class="linea"/>
+<polyline points="1492.0,988 1498.0,1000 1504.0,988" class="punta"/>
+</g>
+<text x="1508.0" y="792" class="mult" text-anchor="start">1</text>
+<text x="1508.0" y="990" class="mult" text-anchor="start">1</text>
+<text x="1488.0" y="990" class="rol" text-anchor="end">-posicion</text>
+<g class="rel" id="r-Juego-Tablero">
+<polyline points="910,375 910,600" class="linea punteada"/>
+<polyline points="904,588 910,600 916,588" class="punta"/>
+</g>
+<text x="918" y="465" class="et" text-anchor="start">«local»</text>
+<g class="rel" id="r-Juego-Coordenada">
+<polyline points="984,375 984,445 1195,445 1195,1040 1340,1040" class="linea punteada"/>
+<polyline points="1328,1046 1340,1040 1328,1034" class="punta"/>
+</g>
+<text x="1203" y="1032" class="et" text-anchor="start">«local»</text>
+<g class="rel" id="r-Interfaz-Tablero">
+<polyline points="1340,358 1340,418 1265,418 1265,880 1125,880" class="linea punteada"/>
+<polyline points="1137,874 1125,880 1137,886" class="punta"/>
+</g>
+<text x="1133" y="898" class="et" text-anchor="start">«parameter»</text>
+<g class="rel" id="r-Interfaz-Coordenada">
+<polyline points="1754,358 1754,1060 1656,1060" class="linea punteada"/>
+<polyline points="1668,1054 1656,1060 1668,1066" class="punta"/>
+</g>
+<text x="1666" y="1052" class="et" text-anchor="start">«create»</text>
+<g class="rel" id="r-Interfaz-Jugador">
+<polyline points="1894,358 1894,1240 260,1240 260,845" class="linea punteada"/>
+<polyline points="266,857 260,845 254,857" class="punta"/>
+</g>
+<text x="268" y="867" class="et" text-anchor="start">«parameter»</text>
+<g class="rel" id="r-Tablero-Coordenada">
+<polyline points="860,964 860,1100 1340,1100" class="linea punteada"/>
+<polyline points="1328,1106 1340,1100 1328,1094" class="punta"/>
+</g>
+<text x="868" y="988" class="et" text-anchor="start">«parameter»</text>
+<text x="40" y="1308" class="ley">+ público · − privado · subrayado = estático · {readOnly} = final · ◆ composición (el dueño hace el new) · ◇ agregación (recibe un objeto que ya existe) · → asociación navegable · ⇢ dependencia: «local» variable local · «parameter» parámetro · «create» la crea y la retorna</text></svg></div>
+      <aside class="u-panel" id="panel" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section id="v-clases" class="u-grupo" hidden>
+    <h2>Clase por clase</h2>
+    <p class="u-lead">Cada renglón de cada caja del diagrama, leído símbolo por símbolo, con la línea de código de donde sale. Así se comprueba que el diagrama dice exactamente lo que hace el código.</p>
+    <div class="u-selector" id="selector"></div>
+    <div id="clase"></div>
+  </section>
+
+  <section id="v-flechas" class="u-grupo" hidden>
+    <h2>Las flechas</h2>
+    <p class="u-lead">Las 13 relaciones del diagrama. Para cada una: cómo se dice, dónde está en el código y por qué es ese tipo y no otro. Al final, las flechas que <em>no</em> hay y la notación completa.</p>
+    <div id="lista-flechas" class="u-grupo"></div>
+  </section>
+
+  <section id="v-practicar" class="u-grupo" hidden>
+    <h2>Practicar</h2>
+    <p class="u-lead">Como dijo Navarro: tomar el diagrama y, por cada flecha, decir qué relación es, por qué y en qué línea. Diga la respuesta en voz alta <em>antes</em> de mostrarla.</p>
+    <div class="u-practica" id="practica"></div>
+  </section>
+
+  <section id="v-preguntas" class="u-grupo" hidden>
+    <h2>Preguntas de Navarro</h2>
+    <p class="u-cita"><q>El diagrama está muy bien. El problema es que no tienen idea de qué es.</q> — sobre el ajedrez. Y su recomendación: <q>toca leer y estudiar</q>; las herramientas que generan el diagrama desde el código <q>se inventan relaciones que no existen</q>.</p>
+    <h3>Cómo leer cualquier diagrama de clases</h3>
+    <ol class="u-metodo" id="metodo"></ol>
+    <h3>Lo que puede preguntar</h3>
+    <div id="lista-preguntas" class="u-grupo"></div>
+  </section>
+</main>
+
+<script>
+const D = {"clases": [{"n": "BatallaNaval", "paq": "batallanaval", "resumen": "La clase principal. Solo tiene el main. No tiene atributos, por eso la franja del medio va vacía.", "filas": [{"uml": "+ main(args: String[]): void", "ln": 18, "lectura": "`+` público · método `main` · **subrayado: static** · 1 parámetro: `args: String[]` · no devuelve nada (`void`)", "nota": "Subrayado porque es `static`: Java lo llama sin crear un objeto BatallaNaval. `String[]` es un arreglo de textos (los argumentos de la línea de comandos, que no usamos).", "codigo": "public static void main(String[] args) {", "est": true}]}, {"n": "Juego", "paq": "batallanaval.controlador", "resumen": "El controlador. Sus cuatro atributos de arriba son los que generan flechas: tres de ellos son de clases nuestras (Jugador, Jugador, Interfaz) y por eso se dibujan como composición.", "filas": [{"uml": "- jugador: Jugador", "ln": 20, "lectura": "`-` privado · atributo `jugador` de tipo `Jugador` · sin {readOnly}: puede cambiar", "nota": "Sale como flecha de composición con el rol `-jugador`. Sin {readOnly} porque se asigna en `iniciar()`, no en el constructor.", "codigo": "private Jugador jugador;", "est": false}, {"uml": "- computador: Jugador", "ln": 23, "lectura": "`-` privado · atributo `computador` de tipo `Jugador` · sin {readOnly}: puede cambiar", "nota": "Segunda flecha a Jugador, con el rol `-computador`. Mismo tipo, otro atributo: por eso son dos flechas y no una.", "codigo": "private Jugador computador;", "est": false}, {"uml": "- interfaz: Interfaz {readOnly}", "ln": 26, "lectura": "`-` privado · atributo `interfaz` de tipo `Interfaz` · `{readOnly}` = final, no cambia", "nota": "Flecha de composición a Interfaz. {readOnly} porque es `final`: se crea en el constructor y no cambia.", "codigo": "private final Interfaz interfaz;", "est": false}, {"uml": "- azar: Random {readOnly}", "ln": 29, "lectura": "`-` privado · atributo `azar` de tipo `Random` · `{readOnly}` = final, no cambia", "nota": "Random es de la librería de Java: no tiene caja propia en el diagrama, así que queda solo como atributo y sin flecha.", "codigo": "private final Random azar;", "est": false}, {"uml": "+ Juego()", "ln": 35, "lectura": "`+` público · **constructor** (se llama como la clase y no lleva retorno) · sin parámetros (paréntesis vacíos)", "nota": "Constructor: se llama igual que la clase y **no lleva tipo de retorno**, ni siquiera void. Paréntesis vacíos = no recibe parámetros.", "codigo": "public Juego() {", "est": false}, {"uml": "+ iniciar(): void", "ln": 44, "lectura": "`+` público · método `iniciar` · sin parámetros (paréntesis vacíos) · no devuelve nada (`void`)", "nota": "Público: lo llama el main. `void` = no devuelve nada.", "codigo": "public void iniciar() {", "est": false}, {"uml": "- turnoJugador(): void", "ln": 72, "lectura": "`-` privado · método `turnoJugador` · sin parámetros (paréntesis vacíos) · no devuelve nada (`void`)", "nota": "Privado: solo lo usa el propio Juego.", "codigo": "private void turnoJugador() {", "est": false}, {"uml": "- turnoComputador(): void", "ln": 88, "lectura": "`-` privado · método `turnoComputador` · sin parámetros (paréntesis vacíos) · no devuelve nada (`void`)", "nota": "", "codigo": "private void turnoComputador() {", "est": false}, {"uml": "- disparar(atacante: Jugador, objetivo: Tablero, disparo: Coordenada): void", "ln": 108, "lectura": "`-` privado · método `disparar` · 3 parámetros: `atacante: Jugador`, `objetivo: Tablero`, `disparo: Coordenada` · no devuelve nada (`void`)", "nota": "Tres parámetros, cada uno `nombre: tipo`. Los tipos Tablero y Coordenada de los parámetros son los que generan las dependencias de Juego (líneas punteadas).", "codigo": "private void disparar(Jugador atacante, Tablero objetivo, Coordenada disparo) {", "est": false}, {"uml": "- hayGanador(): boolean", "ln": 126, "lectura": "`-` privado · método `hayGanador` · sin parámetros (paréntesis vacíos) · devuelve `boolean`", "nota": "Devuelve true o false.", "codigo": "private boolean hayGanador() {", "est": false}, {"uml": "- terminar(): void", "ln": 133, "lectura": "`-` privado · método `terminar` · sin parámetros (paréntesis vacíos) · no devuelve nada (`void`)", "nota": "", "codigo": "private void terminar() {", "est": false}]}, {"n": "Interfaz", "paq": "batallanaval.vista", "resumen": "La vista. Su único atributo es de la librería (Scanner), por eso Interfaz no tiene ninguna flecha de asociación saliendo: todas sus flechas son punteadas (dependencias).", "filas": [{"uml": "- teclado: Scanner {readOnly}", "ln": 17, "lectura": "`-` privado · atributo `teclado` de tipo `Scanner` · `{readOnly}` = final, no cambia", "nota": "Scanner es de Java: atributo sin flecha. {readOnly} porque es final.", "codigo": "private final Scanner teclado;", "est": false}, {"uml": "+ Interfaz()", "ln": 22, "lectura": "`+` público · **constructor** (se llama como la clase y no lleva retorno) · sin parámetros (paréntesis vacíos)", "nota": "Constructor sin parámetros.", "codigo": "public Interfaz() {", "est": false}, {"uml": "+ mostrarMensaje(mensaje: String): void", "ln": 31, "lectura": "`+` público · método `mostrarMensaje` · 1 parámetro: `mensaje: String` · no devuelve nada (`void`)", "nota": "", "codigo": "public void mostrarMensaje(String mensaje) {", "est": false}, {"uml": "+ mostrarBienvenida(): void", "ln": 38, "lectura": "`+` público · método `mostrarBienvenida` · sin parámetros (paréntesis vacíos) · no devuelve nada (`void`)", "nota": "", "codigo": "public void mostrarBienvenida() {", "est": false}, {"uml": "+ pedirNombre(): String", "ln": 52, "lectura": "`+` público · método `pedirNombre` · sin parámetros (paréntesis vacíos) · devuelve `String`", "nota": "Sin parámetros y con salida: devuelve el nombre.", "codigo": "public String pedirNombre() {", "est": false}, {"uml": "+ pedirTamano(): int", "ln": 66, "lectura": "`+` público · método `pedirTamano` · sin parámetros (paréntesis vacíos) · devuelve `int`", "nota": "", "codigo": "public int pedirTamano() {", "est": false}, {"uml": "+ pedirCoordenada(tamano: int): Coordenada", "ln": 76, "lectura": "`+` público · método `pedirCoordenada` · 1 parámetro: `tamano: int` · devuelve `Coordenada`", "nota": "Devuelve una Coordenada que crea en Interfaz:81. Eso es la dependencia «create» hacia Coordenada.", "codigo": "public Coordenada pedirCoordenada(int tamano) {", "est": false}, {"uml": "- leerNumeroEntre(pregunta: String, minimo: int, maximo: int): int", "ln": 92, "lectura": "`-` privado · método `leerNumeroEntre` · 3 parámetros: `pregunta: String`, `minimo: int`, `maximo: int` · devuelve `int`", "nota": "Privado: ayuda interna. Tres parámetros y devuelve un entero.", "codigo": "private int leerNumeroEntre(String pregunta, int minimo, int maximo) {", "est": false}, {"uml": "+ mostrarTablero(titulo: String, tablero: Tablero, mostrarBarcos: boolean): void", "ln": 115, "lectura": "`+` público · método `mostrarTablero` · 3 parámetros: `titulo: String`, `tablero: Tablero`, `mostrarBarcos: boolean` · no devuelve nada (`void`)", "nota": "El parámetro `tablero: Tablero` es la dependencia «parameter» hacia Tablero.", "codigo": "public void mostrarTablero(String titulo, Tablero tablero, boolean mostrarBarcos) {", "est": false}, {"uml": "+ mostrarEstadisticas(jugador: Jugador, tableroRival: Tablero): void", "ln": 143, "lectura": "`+` público · método `mostrarEstadisticas` · 2 parámetros: `jugador: Jugador`, `tableroRival: Tablero` · no devuelve nada (`void`)", "nota": "El parámetro `jugador: Jugador` es la dependencia «parameter» hacia Jugador.", "codigo": "public void mostrarEstadisticas(Jugador jugador, Tablero tableroRival) {", "est": false}]}, {"n": "Jugador", "paq": "batallanaval.modelo", "resumen": "Una persona o el computador. Su atributo `tablero` es la flecha de composición hacia Tablero.", "filas": [{"uml": "- nombre: String {readOnly}", "ln": 14, "lectura": "`-` privado · atributo `nombre` de tipo `String` · `{readOnly}` = final, no cambia", "nota": "String es de Java: atributo sin flecha.", "codigo": "private final String nombre;", "est": false}, {"uml": "- tablero: Tablero {readOnly}", "ln": 17, "lectura": "`-` privado · atributo `tablero` de tipo `Tablero` · `{readOnly}` = final, no cambia", "nota": "Sale como flecha de composición con el rol `-tablero`.", "codigo": "private final Tablero tablero;", "est": false}, {"uml": "- aciertos: int", "ln": 20, "lectura": "`-` privado · atributo `aciertos` de tipo `int` · sin {readOnly}: puede cambiar", "nota": "Sin {readOnly}: cambia durante la partida.", "codigo": "private int aciertos;", "est": false}, {"uml": "- fallos: int", "ln": 23, "lectura": "`-` privado · atributo `fallos` de tipo `int` · sin {readOnly}: puede cambiar", "nota": "", "codigo": "private int fallos;", "est": false}, {"uml": "+ Jugador(nombre: String, tamanoTablero: int)", "ln": 31, "lectura": "`+` público · **constructor** (se llama como la clase y no lleva retorno) · 2 parámetros: `nombre: String`, `tamanoTablero: int`", "nota": "Constructor con dos parámetros. Aquí adentro se hace el `new Tablero` (Jugador:33).", "codigo": "public Jugador(String nombre, int tamanoTablero) {", "est": false}, {"uml": "+ sumarAcierto(): void", "ln": 42, "lectura": "`+` público · método `sumarAcierto` · sin parámetros (paréntesis vacíos) · no devuelve nada (`void`)", "nota": "", "codigo": "public void sumarAcierto() {", "est": false}, {"uml": "+ sumarFallo(): void", "ln": 49, "lectura": "`+` público · método `sumarFallo` · sin parámetros (paréntesis vacíos) · no devuelve nada (`void`)", "nota": "", "codigo": "public void sumarFallo() {", "est": false}, {"uml": "+ getNombre(): String", "ln": 58, "lectura": "`+` público · método `getNombre` · sin parámetros (paréntesis vacíos) · devuelve `String`", "nota": "Getter: sin parámetros y devuelve el tipo del atributo.", "codigo": "public String getNombre() {", "est": false}, {"uml": "+ getTablero(): Tablero", "ln": 67, "lectura": "`+` público · método `getTablero` · sin parámetros (paréntesis vacíos) · devuelve `Tablero`", "nota": "", "codigo": "public Tablero getTablero() {", "est": false}, {"uml": "+ getAciertos(): int", "ln": 76, "lectura": "`+` público · método `getAciertos` · sin parámetros (paréntesis vacíos) · devuelve `int`", "nota": "", "codigo": "public int getAciertos() {", "est": false}, {"uml": "+ getFallos(): int", "ln": 85, "lectura": "`+` público · método `getFallos` · sin parámetros (paréntesis vacíos) · devuelve `int`", "nota": "", "codigo": "public int getFallos() {", "est": false}]}, {"n": "Tablero", "paq": "batallanaval.modelo", "resumen": "La clase con más detalle del diagrama: cinco constantes static (subrayadas), la matriz `char[][]` y el arreglo de 5 barcos que es la flecha de composición hacia Barco.", "filas": [{"uml": "+ CANTIDAD_BARCOS: int = 5 {readOnly}", "ln": 17, "lectura": "`+` público · atributo `CANTIDAD_BARCOS` de tipo `int` · **subrayado: static** (uno solo para toda la clase) · valor inicial `5` · `{readOnly}` = final, no cambia", "nota": "Subrayado = `static` (atributo de clase). `= 5` es el valor inicial. {readOnly} = final. Es público porque es una constante y nadie la puede cambiar.", "codigo": "public static final int CANTIDAD_BARCOS = 5;", "est": true}, {"uml": "+ AGUA: char = '~' {readOnly}", "ln": 22, "lectura": "`+` público · atributo `AGUA` de tipo `char` · **subrayado: static** (uno solo para toda la clase) · valor inicial `'~'` · `{readOnly}` = final, no cambia", "nota": "Otra constante static: subrayada, con su valor y {readOnly}.", "codigo": "public static final char AGUA = '~';", "est": true}, {"uml": "+ BARCO: char = 'B' {readOnly}", "ln": 24, "lectura": "`+` público · atributo `BARCO` de tipo `char` · **subrayado: static** (uno solo para toda la clase) · valor inicial `'B'` · `{readOnly}` = final, no cambia", "nota": "", "codigo": "public static final char BARCO = 'B';", "est": true}, {"uml": "+ TOCADO: char = 'X' {readOnly}", "ln": 26, "lectura": "`+` público · atributo `TOCADO` de tipo `char` · **subrayado: static** (uno solo para toda la clase) · valor inicial `'X'` · `{readOnly}` = final, no cambia", "nota": "", "codigo": "public static final char TOCADO = 'X';", "est": true}, {"uml": "+ FALLO: char = 'O' {readOnly}", "ln": 28, "lectura": "`+` público · atributo `FALLO` de tipo `char` · **subrayado: static** (uno solo para toda la clase) · valor inicial `'O'` · `{readOnly}` = final, no cambia", "nota": "", "codigo": "public static final char FALLO = 'O';", "est": true}, {"uml": "- tamano: int {readOnly}", "ln": 31, "lectura": "`-` privado · atributo `tamano` de tipo `int` · `{readOnly}` = final, no cambia", "nota": "No subrayado: es de instancia, cada tablero tiene el suyo.", "codigo": "private final int tamano;", "est": false}, {"uml": "- celdas: char[][] {readOnly}", "ln": 34, "lectura": "`-` privado · atributo `celdas` de tipo `char[][]` · `{readOnly}` = final, no cambia", "nota": "`char[][]` = matriz de caracteres. Es de un tipo primitivo, no de una clase nuestra, así que no genera flecha.", "codigo": "private final char[][] celdas;", "est": false}, {"uml": "- barcos: Barco[] {readOnly}", "ln": 37, "lectura": "`-` privado · atributo `barcos` de tipo `Barco[]` · `{readOnly}` = final, no cambia", "nota": "`Barco[]` = arreglo de Barco. Como Barco es una clase nuestra, este atributo sale además como la flecha de composición con multiplicidad 5 y el rol `-barcos`.", "codigo": "private final Barco[] barcos;", "est": false}, {"uml": "+ Tablero(tamano: int)", "ln": 44, "lectura": "`+` público · **constructor** (se llama como la clase y no lleva retorno) · 1 parámetro: `tamano: int`", "nota": "Constructor con un parámetro.", "codigo": "public Tablero(int tamano) {", "est": false}, {"uml": "+ colocarBarcos(): void", "ln": 60, "lectura": "`+` público · método `colocarBarcos` · sin parámetros (paréntesis vacíos) · no devuelve nada (`void`)", "nota": "Aquí adentro está el `new Barco(new Coordenada(f, c))` de Tablero:70.", "codigo": "public void colocarBarcos() {", "est": false}, {"uml": "+ recibirDisparo(disparo: Coordenada): boolean", "ln": 82, "lectura": "`+` público · método `recibirDisparo` · 1 parámetro: `disparo: Coordenada` · devuelve `boolean`", "nota": "El parámetro de tipo Coordenada es la dependencia «parameter» Tablero → Coordenada.", "codigo": "public boolean recibirDisparo(Coordenada disparo) {", "est": false}, {"uml": "- buscarBarco(disparo: Coordenada): Barco", "ln": 102, "lectura": "`-` privado · método `buscarBarco` · 1 parámetro: `disparo: Coordenada` · devuelve `Barco`", "nota": "Privado. Devuelve un Barco.", "codigo": "private Barco buscarBarco(Coordenada disparo) {", "est": false}, {"uml": "+ yaDisparado(disparo: Coordenada): boolean", "ln": 118, "lectura": "`+` público · método `yaDisparado` · 1 parámetro: `disparo: Coordenada` · devuelve `boolean`", "nota": "", "codigo": "public boolean yaDisparado(Coordenada disparo) {", "est": false}, {"uml": "+ barcosRestantes(): int", "ln": 128, "lectura": "`+` público · método `barcosRestantes` · sin parámetros (paréntesis vacíos) · devuelve `int`", "nota": "", "codigo": "public int barcosRestantes() {", "est": false}, {"uml": "+ todosHundidos(): boolean", "ln": 143, "lectura": "`+` público · método `todosHundidos` · sin parámetros (paréntesis vacíos) · devuelve `boolean`", "nota": "", "codigo": "public boolean todosHundidos() {", "est": false}, {"uml": "+ celdasSinDisparar(): int", "ln": 152, "lectura": "`+` público · método `celdasSinDisparar` · sin parámetros (paréntesis vacíos) · devuelve `int`", "nota": "", "codigo": "public int celdasSinDisparar() {", "est": false}, {"uml": "+ getCelda(f: int, c: int, mostrarBarcos: boolean): char", "ln": 173, "lectura": "`+` público · método `getCelda` · 3 parámetros: `f: int`, `c: int`, `mostrarBarcos: boolean` · devuelve `char`", "nota": "Tres parámetros; devuelve un char.", "codigo": "public char getCelda(int f, int c, boolean mostrarBarcos) {", "est": false}, {"uml": "+ getTamano(): int", "ln": 185, "lectura": "`+` público · método `getTamano` · sin parámetros (paréntesis vacíos) · devuelve `int`", "nota": "", "codigo": "public int getTamano() {", "est": false}]}, {"n": "Barco", "paq": "batallanaval.modelo", "resumen": "Su atributo `posicion` es la flecha de agregación (rombo vacío) hacia Coordenada.", "filas": [{"uml": "- posicion: Coordenada {readOnly}", "ln": 14, "lectura": "`-` privado · atributo `posicion` de tipo `Coordenada` · `{readOnly}` = final, no cambia", "nota": "Sale como flecha de agregación con el rol `-posicion`.", "codigo": "private final Coordenada posicion;", "est": false}, {"uml": "- hundido: boolean", "ln": 17, "lectura": "`-` privado · atributo `hundido` de tipo `boolean` · sin {readOnly}: puede cambiar", "nota": "Sin {readOnly}: pasa de false a true.", "codigo": "private boolean hundido;", "est": false}, {"uml": "+ Barco(posicion: Coordenada)", "ln": 24, "lectura": "`+` público · **constructor** (se llama como la clase y no lleva retorno) · 1 parámetro: `posicion: Coordenada`", "nota": "El constructor **recibe** la Coordenada ya creada. Por eso la relación es agregación y no composición.", "codigo": "public Barco(Coordenada posicion) {", "est": false}, {"uml": "+ getPosicion(): Coordenada", "ln": 34, "lectura": "`+` público · método `getPosicion` · sin parámetros (paréntesis vacíos) · devuelve `Coordenada`", "nota": "", "codigo": "public Coordenada getPosicion() {", "est": false}, {"uml": "+ isHundido(): boolean", "ln": 43, "lectura": "`+` público · método `isHundido` · sin parámetros (paréntesis vacíos) · devuelve `boolean`", "nota": "Getter de un boolean: empieza por `is`.", "codigo": "public boolean isHundido() {", "est": false}, {"uml": "+ hundir(): void", "ln": 50, "lectura": "`+` público · método `hundir` · sin parámetros (paréntesis vacíos) · no devuelve nada (`void`)", "nota": "", "codigo": "public void hundir() {", "est": false}]}, {"n": "Coordenada", "paq": "batallanaval.modelo", "resumen": "La clase auxiliar que pide el enunciado. No tiene ninguna flecha saliendo: solo le llegan.", "filas": [{"uml": "- fila: int {readOnly}", "ln": 14, "lectura": "`-` privado · atributo `fila` de tipo `int` · `{readOnly}` = final, no cambia", "nota": "", "codigo": "private final int fila;", "est": false}, {"uml": "- columna: int {readOnly}", "ln": 17, "lectura": "`-` privado · atributo `columna` de tipo `int` · `{readOnly}` = final, no cambia", "nota": "", "codigo": "private final int columna;", "est": false}, {"uml": "+ Coordenada(fila: int, columna: int)", "ln": 25, "lectura": "`+` público · **constructor** (se llama como la clase y no lleva retorno) · 2 parámetros: `fila: int`, `columna: int`", "nota": "Un constructor con dos parámetros.", "codigo": "public Coordenada(int fila, int columna) {", "est": false}, {"uml": "+ getFila(): int", "ln": 35, "lectura": "`+` público · método `getFila` · sin parámetros (paréntesis vacíos) · devuelve `int`", "nota": "", "codigo": "public int getFila() {", "est": false}, {"uml": "+ getColumna(): int", "ln": 44, "lectura": "`+` público · método `getColumna` · sin parámetros (paréntesis vacíos) · devuelve `int`", "nota": "", "codigo": "public int getColumna() {", "est": false}, {"uml": "+ toString(): String", "ln": 54, "lectura": "`+` público · método `toString` · sin parámetros (paréntesis vacíos) · devuelve `String`", "nota": "Sobrescribe el toString de Object. En el diagrama no se marca distinto.", "codigo": "public String toString() {", "est": false}]}], "rel": [{"id": "Juego-Interfaz", "tipo": "comp", "de": "Juego", "a": "Interfaz", "rol": "-interfaz", "mult": ["1", "1"], "lineas": ["Juego:26", "Juego:36"], "leer": "Un Juego tiene una Interfaz, que él mismo crea. La interfaz nace con el juego y muere con él.", "codigo": "El atributo `private final Interfaz interfaz;` (Juego:26) y el `new Interfaz()` del constructor (Juego:36).", "porque": "Composición porque Juego hace el `new`: nadie le pasa la interfaz desde afuera. No es dependencia porque está guardada en un atributo: dura lo que dura el Juego.", "trampa": "Si el profe pregunta «¿y por qué no agregación?»: porque la interfaz no existe antes del juego ni se comparte con nadie."}, {"id": "Juego-Jugador-jugador", "tipo": "comp", "de": "Juego", "a": "Jugador", "rol": "-jugador", "mult": ["1", "1"], "lineas": ["Juego:20", "Juego:49"], "leer": "Un Juego tiene un Jugador que se llama `jugador` (la persona). Lo crea Juego.", "codigo": "Atributo `private Jugador jugador;` (Juego:20). Se crea en `iniciar()`: `jugador = new Jugador(nombre, tamano);` (Juego:49).", "porque": "Composición: Juego hace el `new`. El jugador no existe fuera de la partida.", "trampa": "Se crea en iniciar() y no en el constructor porque antes hay que preguntar el nombre y el tamaño. Sigue siendo composición: lo importante es **quién** hace el new, no en qué método."}, {"id": "Juego-Jugador-computador", "tipo": "comp", "de": "Juego", "a": "Jugador", "rol": "-computador", "mult": ["1", "1"], "lineas": ["Juego:23", "Juego:50"], "leer": "Un Juego tiene otro Jugador, que se llama `computador`.", "codigo": "Atributo `private Jugador computador;` (Juego:23) y `computador = new Jugador(\"Computador\", tamano);` (Juego:50).", "porque": "Composición, igual que la anterior. Son **dos flechas** porque son **dos atributos**: Navarro enseñó que el rótulo de la flecha es el nombre del atributo, y una flecha tiene un solo rótulo.", "trampa": "«¿Cuántos objetos Jugador hay?» Dos: uno por flecha. También se podría dibujar una sola flecha con multiplicidad 2, pero entonces debería existir un atributo `Jugador[] jugadores`, que no tenemos."}, {"id": "Jugador-Tablero", "tipo": "comp", "de": "Jugador", "a": "Tablero", "rol": "-tablero", "mult": ["1", "1"], "lineas": ["Jugador:17", "Jugador:33"], "leer": "Un Jugador tiene un Tablero, su propio tablero con sus barcos. Lo crea el Jugador.", "codigo": "Atributo `private final Tablero tablero;` (Jugador:17) y `this.tablero = new Tablero(tamanoTablero);` en el constructor (Jugador:33).", "porque": "Composición: el jugador crea su tablero en el constructor; el tablero no existe sin su jugador y no lo comparte con nadie.", "trampa": "Juego también usa tableros, pero **no** tiene atributo Tablero: los pide con `getTablero()`. Por eso Juego → Tablero es solo una dependencia."}, {"id": "Tablero-Barco", "tipo": "comp", "de": "Tablero", "a": "Barco", "rol": "-barcos", "mult": ["1", "5"], "lineas": ["Tablero:37", "Tablero:47", "Tablero:70"], "leer": "Un Tablero tiene exactamente 5 Barcos, guardados en el atributo `barcos`. Los crea el Tablero.", "codigo": "Atributo `private final Barco[] barcos;` (Tablero:37), el arreglo de 5 espacios (Tablero:47) y cada barco creado con `new Barco(...)` en `colocarBarcos` (Tablero:70).", "porque": "Composición: el Tablero hace el `new Barco`. Si se destruye el tablero, sus barcos se van con él. La multiplicidad es **5** y no `*` porque es un arreglo de tamaño fijo (`CANTIDAD_BARCOS`).", "trampa": "Navarro: con `*` no se puede usar un arreglo, porque un arreglo necesita tamaño. Como aquí el número es fijo, el arreglo es lo correcto."}, {"id": "Barco-Coordenada", "tipo": "agr", "de": "Barco", "a": "Coordenada", "rol": "-posicion", "mult": ["1", "1"], "lineas": ["Barco:14", "Barco:24", "Tablero:70"], "leer": "Un Barco tiene una Coordenada (su posición), pero no la crea: se la entregan ya hecha.", "codigo": "Atributo `private final Coordenada posicion;` (Barco:14), que se recibe en el constructor `Barco(Coordenada posicion)` (Barco:24). Quien hace `new Coordenada(f, c)` es el Tablero (Tablero:70).", "porque": "Agregación porque Barco **recibe** un objeto que ya existe en vez de crearlo (la regla del 14 sep: «se crea por separado»). Es una asociación y no una dependencia porque Barco la **guarda en un atributo** (la regla del 21 sep: recibirla por el constructor y guardarla sigue siendo asociación).", "trampa": "Si el profe dice que debería ser composición (nadie más usa esa coordenada): se defiende con su propio criterio de quién hace el new. Para que fuera composición, el constructor tendría que ser `Barco(int fila, int columna)` y hacer el `new Coordenada` adentro."}, {"id": "BatallaNaval-Juego", "tipo": "dep", "de": "BatallaNaval", "a": "Juego", "est": "«local»", "lineas": ["BatallaNaval:19"], "leer": "BatallaNaval usa un Juego: lo crea en una variable local del main.", "codigo": "`Juego juego = new Juego();` dentro de `main` (BatallaNaval:19). No es un atributo.", "porque": "Dependencia «local»: el juego vive solo dentro del método main. Una clase con solo un main casi siempre depende así de lo que arranca.", "trampa": ""}, {"id": "Juego-Tablero", "tipo": "dep", "de": "Juego", "a": "Tablero", "est": "«local»", "lineas": ["Juego:73", "Juego:89", "Juego:108"], "leer": "Juego usa Tableros, pero no tiene ninguno guardado.", "codigo": "Variables locales `Tablero rival = computador.getTablero();` (Juego:73 y Juego:89) y el parámetro `objetivo: Tablero` de `disparar` (Juego:108).", "porque": "Dependencia: Juego **no** tiene un atributo Tablero. Llega a los tableros a través de los jugadores, los usa dentro del método y los suelta.", "trampa": "Un generador automático podría dibujar aquí una asociación porque ve «Tablero» en el código de Juego. Es justo lo que Navarro critica: «se inventan relaciones». Sin atributo no hay asociación."}, {"id": "Juego-Coordenada", "tipo": "dep", "de": "Juego", "a": "Coordenada", "est": "«local»", "lineas": ["Juego:74", "Juego:91", "Juego:95"], "leer": "Juego usa Coordenadas para los disparos, como variables locales.", "codigo": "`Coordenada disparo` en turnoJugador (Juego:74) y en turnoComputador (Juego:91), donde además la crea al azar (Juego:95).", "porque": "Dependencia «local»: cada coordenada vive mientras dura el turno.", "trampa": "Aunque Juego hace `new Coordenada` en Juego:95, no es composición: no la guarda en ningún atributo."}, {"id": "Interfaz-Tablero", "tipo": "dep", "de": "Interfaz", "a": "Tablero", "est": "«parameter»", "lineas": ["Interfaz:115", "Interfaz:143"], "leer": "Interfaz recibe Tableros para dibujarlos.", "codigo": "Parámetro `tablero` de `mostrarTablero` (Interfaz:115) y `tableroRival` de `mostrarEstadisticas` (Interfaz:143).", "porque": "Dependencia «parameter»: Interfaz recibe el tablero, lo dibuja y no lo guarda.", "trampa": ""}, {"id": "Interfaz-Jugador", "tipo": "dep", "de": "Interfaz", "a": "Jugador", "est": "«parameter»", "lineas": ["Interfaz:143"], "leer": "Interfaz recibe un Jugador para mostrar sus estadísticas.", "codigo": "Parámetro `jugador` de `mostrarEstadisticas` (Interfaz:143).", "porque": "Dependencia «parameter»: lo recibe y lo suelta.", "trampa": ""}, {"id": "Interfaz-Coordenada", "tipo": "dep", "de": "Interfaz", "a": "Coordenada", "est": "«create»", "lineas": ["Interfaz:76", "Interfaz:81"], "leer": "Interfaz crea Coordenadas y las devuelve.", "codigo": "`return new Coordenada(fila - 1, columna - 1);` en `pedirCoordenada` (Interfaz:81), que declara Coordenada como tipo de retorno (Interfaz:76).", "porque": "Dependencia «create»: la crea y la retorna, como el estereotipo que mostró Navarro el 14 sep. No la guarda, así que no es asociación.", "trampa": ""}, {"id": "Tablero-Coordenada", "tipo": "dep", "de": "Tablero", "a": "Coordenada", "est": "«parameter»", "lineas": ["Tablero:82", "Tablero:102", "Tablero:118"], "leer": "Tablero recibe Coordenadas en sus métodos de disparo.", "codigo": "Parámetro `disparo` de `recibirDisparo` (Tablero:82), `buscarBarco` (Tablero:102) y `yaDisparado` (Tablero:118).", "porque": "Dependencia «parameter». Tablero también hace `new Coordenada(f, c)` en Tablero:70, pero se la entrega al barco: no la guarda él.", "trampa": ""}], "nohay": [["Interfaz → Barco", "Interfaz nunca menciona Barco: dibuja el tablero pidiendo símbolos con `getCelda` (Interfaz:131)."], ["Juego → Barco", "Juego nunca toca un Barco: le dispara al Tablero y el Tablero hunde el barco (Tablero:88)."], ["Jugador → Barco", "Los barcos son del Tablero, no del Jugador. El jugador solo llega a ellos a través de su tablero."], ["Juego → Tablero como asociación", "No hay atributo Tablero en Juego. Es dependencia «local»."], ["Flechas a String, Random o Scanner", "Son clases de la librería de Java. Se quedan como tipo del atributo dentro de la caja."], ["Herencia o interfaces", "No hay `extends` ni `implements` en el proyecto, así que no hay triángulos."]], "notacion": [["+", "público: se puede usar desde cualquier clase."], ["-", "privado: solo la propia clase."], ["#", "protegido (no lo usamos en este proyecto)."], ["nombre: Tipo", "atributo o parámetro: primero el nombre y después el tipo, al revés que en Java."], ["metodo(p: Tipo): Retorno", "lo que va después de los dos puntos finales es lo que devuelve. `void` = no devuelve nada."], ["Clase(p: Tipo)", "constructor: se llama como la clase y no lleva tipo de retorno."], ["subrayado", "`static`: atributo o método de clase, uno solo para todos los objetos."], ["{readOnly}", "`final`: se asigna una vez y no cambia; por eso no tiene setter."], ["= valor", "valor inicial del atributo."], ["Tipo[] / Tipo[][]", "arreglo / matriz de ese tipo."], ["◆ línea continua", "composición: el todo crea la parte y la guarda en un atributo."], ["◇ línea continua", "agregación: el todo recibe la parte ya creada y la guarda en un atributo."], ["línea continua con flecha", "asociación navegable: la punta dice quién conoce a quién."], ["línea punteada con flecha", "dependencia: la usa como parámetro, variable local o retorno, sin guardarla."], ["rótulo -nombre", "el nombre del atributo que materializa la relación."], ["1, 5, *, 0..1", "multiplicidad: cuántos objetos hay en ese extremo. Nada = 1, `*` = muchos (cero o más)."], ["«local» «parameter» «create»", "estereotipos: etiquetas que dicen cómo se usa la otra clase."], ["carpeta con pestaña", "paquete: agrupa clases. Los nuestros: batallanaval, controlador, vista y modelo."]], "preg": [["Muéstreme dónde se crea en el código la relación entre Tablero y Barco.", "En el atributo `private final Barco[] barcos;` (Tablero:37). Los barcos se crean con `new Barco` en Tablero:70. Es composición porque el Tablero los crea, y la multiplicidad 5 sale del arreglo de `CANTIDAD_BARCOS`."], ["¿Cuál es la diferencia entre composición y agregación aquí?", "Quién hace el `new`. Tablero hace el `new Barco` → composición (rombo lleno). Barco **recibe** la Coordenada ya hecha en su constructor → agregación (rombo vacío). La pregunta del profe: si destruyo el todo, ¿se destruye la parte? Si se destruye el tablero, se van los barcos."], ["¿Cuál es la diferencia entre asociación y dependencia?", "Asociación = es un **atributo**: la relación dura lo que dura el objeto (Jugador:17). Dependencia = la usa como **parámetro o variable local** y la suelta al terminar el método (Juego:73). Se dibuja punteada."], ["¿Por qué hay dos flechas de Juego a Jugador?", "Porque Juego tiene dos atributos de tipo Jugador: `jugador` (Juego:20) y `computador` (Juego:23). Cada flecha lleva como rótulo el nombre de su atributo."], ["¿Qué significa {readOnly}?", "Que el atributo es `final`: se asigna una vez, en la declaración o en el constructor, y no cambia. Por eso esos atributos tienen getter pero no setter. Ejemplo: `fila` de Coordenada (Coordenada:14)."], ["¿Por qué unas cosas están subrayadas?", "Porque son `static`: pertenecen a la clase y no a cada objeto. En Tablero son las constantes (Tablero:17) y en BatallaNaval el `main` (BatallaNaval:18)."], ["¿Por qué Random y Scanner no tienen flecha?", "Porque son clases de la librería de Java, no de nuestro modelo. Aparecen como tipo de un atributo dentro de la caja (Juego:29, Interfaz:17)."], ["¿Qué son los paquetes del diagrama?", "Las carpetas `controlador`, `vista` y `modelo` del MVC. Juego (controlador) conecta la Interfaz (vista) con las clases del modelo. Fue la corrección del ajedrez: todo estaba en un solo paquete."], ["Si le paso este diagrama a otro programador, ¿puede construir el juego?", "Sí: el diagrama dice qué atributos tiene cada clase y de qué tipo, quién crea a quién (rombos), cuántos hay (multiplicidades) y qué métodos con qué parámetros. Es el «plano»: lo único que no dice es el código de adentro de cada método."], ["¿Lo generaron con una herramienta?", "No. Se hizo leyendo el código, flecha por flecha. Cada relación tiene su línea: por ejemplo, Juego → Tablero es punteada porque Juego no tiene atributo Tablero, cosa que un generador automático a veces dibuja mal."]], "metodo": ["Lea la caja de arriba hacia abajo: nombre, atributos y métodos.", "Por cada atributo, pregunte si es de una clase nuestra. Si lo es, tiene que haber una flecha continua con ese nombre como rótulo.", "Por cada flecha continua, busque quién hace el `new`. Si lo hace el dueño, es rombo lleno (composición); si lo recibe ya hecho, es rombo vacío (agregación).", "Por cada flecha punteada, encuentre el parámetro, la variable local o el return que la causa.", "Diga la multiplicidad en voz alta: «un Tablero tiene cinco Barcos».", "Termine con una frase: qué relación es, por qué y en qué línea está."], "ref": {"Coordenada:14": "private final int fila;", "BatallaNaval:19": "Juego juego = new Juego();", "Tablero:47": "this.barcos = new Barco[CANTIDAD_BARCOS];", "Barco:24": "public Barco(Coordenada posicion) {", "Interfaz:81": "return new Coordenada(fila - 1, columna - 1);", "Juego:36": "interfaz = new Interfaz();", "Juego:89": "Tablero rival = jugador.getTablero();", "Jugador:17": "private final Tablero tablero;", "Tablero:70": "barcos[colocados] = new Barco(new Coordenada(f, c));", "Tablero:118": "public boolean yaDisparado(Coordenada disparo) {", "Juego:23": "private Jugador computador;", "Interfaz:143": "public void mostrarEstadisticas(Jugador jugador, Tablero tableroRival) {", "BatallaNaval:18": "public static void main(String[] args) {", "Tablero:37": "private final Barco[] barcos;", "Juego:29": "private final Random azar;", "Juego:91": "Coordenada disparo;", "Juego:73": "Tablero rival = computador.getTablero();", "Interfaz:76": "public Coordenada pedirCoordenada(int tamano) {", "Juego:95": "disparo = new Coordenada(azar.nextInt(tamano), azar.nextInt(tamano));", "Tablero:17": "public static final int CANTIDAD_BARCOS = 5;", "Jugador:33": "this.tablero = new Tablero(tamanoTablero);", "Juego:26": "private final Interfaz interfaz;", "Juego:20": "private Jugador jugador;", "Tablero:88": "buscarBarco(disparo).hundir();", "Juego:74": "Coordenada disparo = interfaz.pedirCoordenada(rival.getTamano());", "Tablero:82": "public boolean recibirDisparo(Coordenada disparo) {", "Interfaz:115": "public void mostrarTablero(String titulo, Tablero tablero, boolean mostrarBarcos) {", "Barco:14": "private final Coordenada posicion;", "Juego:49": "jugador = new Jugador(nombre, tamano);", "Juego:50": "computador = new Jugador(\"Computador\", tamano);", "Interfaz:131": "System.out.printf(\"%3c\", tablero.getCelda(f, c, mostrarBarcos));", "Interfaz:17": "private final Scanner teclado;", "Tablero:102": "private Barco buscarBarco(Coordenada disparo) {", "Juego:108": "private void disparar(Jugador atacante, Tablero objetivo, Coordenada disparo) {"}};
+const TIPO = {comp:"Composición", agr:"Agregación", dep:"Dependencia"};
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function texto(t){
+  let h = esc(t).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  return h.replace(/\b(BatallaNaval|Juego|Interfaz|Jugador|Tablero|Barco|Coordenada):(\d+)\b/g, (m) =>
+    `<button class="u-ref" title="${esc(D.ref[m] || "")}">${m}</button>`);
+}
+function codigo(refs){
+  return `<pre class="u-codigo">${refs.map(r => `<b>${r}</b>${esc(D.ref[r] || "")}`).join("\n")}</pre>`;
+}
+function glifo(tipo){
+  const fin = `<polyline points="74,4 84,10 74,16" fill="none" stroke="currentColor" stroke-width="1.6"/>`;
+  if (tipo === "dep") return `<svg class="u-glifo" viewBox="0 0 86 20" aria-hidden="true"><line x1="2" y1="10" x2="83" y2="10" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 4"/>${fin}</svg>`;
+  const rombo = `<polygon points="2,10 11,4 20,10 11,16" fill="${tipo === "comp" ? "currentColor" : "var(--surface)"}" stroke="currentColor" stroke-width="1.6"/>`;
+  return `<svg class="u-glifo" viewBox="0 0 86 20" aria-hidden="true"><line x1="20" y1="10" x2="83" y2="10" stroke="currentColor" stroke-width="1.6"/>${rombo}${fin}</svg>`;
+}
+const flechaTxt = r => `${r.de} ${r.tipo === "comp" ? "◆→" : r.tipo === "agr" ? "◇→" : "⇢"} ${r.a}`;
+const POR_ID = Object.fromEntries(D.rel.map(r => [r.id, r]));
+const POR_CLASE = Object.fromEntries(D.clases.map(c => [c.n, c]));
+
+/* ---- Vistas ---- */
+const VISTAS = ["plano","clases","flechas","practicar","preguntas"];
+function vista(v, scroll){
+  if (!VISTAS.includes(v)) v = "plano";
+  for (const b of document.querySelectorAll(".u-tab")) b.setAttribute("aria-selected", b.dataset.v === v);
+  for (const s of VISTAS) document.getElementById("v-" + s).hidden = s !== v;
+  if (scroll) window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", () => vista(location.hash.slice(1), true));
+
+/* ---- El plano ---- */
+const hoja = document.getElementById("hoja"), panel = document.getElementById("panel");
+for (const g of hoja.querySelectorAll(".rel")){
+  for (const p of g.querySelectorAll("polyline.linea")){
+    const h = p.cloneNode(); h.setAttribute("class", "hit"); g.appendChild(h);
+  }
+  g.setAttribute("tabindex", "0");
+}
+for (const g of hoja.querySelectorAll(".clase")) g.setAttribute("tabindex", "0");
+
+function panelVacio(){
+  panel.innerHTML = `<h3>Toque una flecha</h3><p class="u-vacio">O escoja una de esta lista. Las continuas con rombo son atributos; las punteadas son dependencias.</p>
+    <div class="u-lista-rel">${D.rel.map(r => `<button class="u-chip" data-rel="${r.id}">${esc(flechaTxt(r))}${r.rol ? " " + esc(r.rol) : ""}</button>`).join("")}</div>`;
+}
+function marcar(sel){
+  for (const g of hoja.querySelectorAll(".rel,.clase")) g.classList.remove("on");
+  hoja.classList.toggle("atenua", !!sel);
+  if (sel) for (const id of sel) hoja.querySelector("#" + CSS.escape(id))?.classList.add("on");
+}
+function verRel(id){
+  const r = POR_ID[id]; if (!r) return;
+  marcar(["r-" + id]);
+  const mult = r.mult ? `<dt>Multiplicidad</dt><dd>${esc(r.mult[0])} ${esc(r.de)} — ${esc(r.mult[1])} ${esc(r.a)}</dd>` : "";
+  panel.innerHTML = `<div><span class="u-badge ${r.tipo}">${TIPO[r.tipo]}${r.est ? " " + esc(r.est) : ""}</span></div>
+    <h3 class="u-mono" style="font-family:var(--f-mono);font-size:17px">${esc(flechaTxt(r))}</h3>
+    <dl>${r.rol ? `<dt>Rótulo</dt><dd><code>${esc(r.rol)}</code>: el nombre del atributo</dd>` : ""}${mult}
+    <dt>Cómo se dice</dt><dd>${texto(r.leer)}</dd>
+    <dt>En el código</dt><dd>${texto(r.codigo)}${codigo(r.lineas)}</dd>
+    <dt>Por qué es esta relación</dt><dd>${texto(r.porque)}</dd></dl>
+    ${r.trampa ? `<div class="u-trampa"><span class="u-k" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600">Si pregunta</span>${texto(r.trampa)}</div>` : ""}
+    <button class="u-btn-plano" data-limpiar="1">Ver todas</button>`;
+}
+function verClase(n){
+  const c = POR_CLASE[n]; if (!c) return;
+  const sale = D.rel.filter(r => r.de === n), llega = D.rel.filter(r => r.a === n);
+  marcar(["c-" + n, ...sale.map(r => "r-" + r.id), ...llega.map(r => "r-" + r.id)]);
+  const li = rs => rs.length ? rs.map(r => `<button class="u-chip" data-rel="${r.id}">${esc(flechaTxt(r))}${r.rol ? " " + esc(r.rol) : ""}</button>`).join("") : `<span class="u-vacio">ninguna</span>`;
+  panel.innerHTML = `<div><span class="u-badge comp" style="text-transform:none;letter-spacing:0;font-family:var(--f-mono)">${esc(c.paq)}</span></div>
+    <h3>${esc(n)}</h3><p style="margin:0">${texto(c.resumen)}</p>
+    <dl><dt>Flechas que salen</dt><dd class="u-lista-rel">${li(sale)}</dd>
+    <dt>Flechas que llegan</dt><dd class="u-lista-rel">${li(llega)}</dd></dl>
+    <button class="u-btn-plano" data-clase-ir="${esc(n)}">Leer la caja renglón por renglón</button>
+    <button class="u-btn-plano" data-limpiar="1">Ver todas</button>`;
+}
+hoja.addEventListener("click", e => {
+  const r = e.target.closest(".rel"); if (r){ verRel(r.id.slice(2)); return; }
+  const c = e.target.closest(".clase"); if (c){ verClase(c.id.slice(2)); }
+});
+hoja.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const g = e.target.closest(".rel,.clase"); if (!g) return;
+  e.preventDefault(); g.classList.contains("rel") ? verRel(g.id.slice(2)) : verClase(g.id.slice(2));
+});
+
+/* ---- Clase por clase ---- */
+let claseActual = "Tablero";
+try { const g = localStorage.getItem("uml-bn-clase"); if (g && POR_CLASE[g]) claseActual = g; } catch(_){}
+function pintarClase(){
+  document.getElementById("selector").innerHTML = D.clases.map(c =>
+    `<button class="u-chip" data-sel="${c.n}" aria-pressed="${c.n === claseActual}">${c.n}</button>`).join("");
+  const c = POR_CLASE[claseActual];
+  const archivo = c.n;
+  const attrs = c.filas.filter(f => !f.uml.includes("(")), mets = c.filas.filter(f => f.uml.includes("("));
+  const fila = f => `<div class="u-fila"><div class="u-uml ${f.est ? "est" : ""}">${esc(f.uml)}</div>
+      <div class="u-que"><span>${texto(f.lectura)}</span>${f.nota ? `<span class="u-nota">${texto(f.nota)}</span>` : ""}</div>
+      <div class="u-src"><button class="u-ref" title="${esc(f.codigo)}" style="align-self:flex-start">${archivo}:${f.ln}</button><pre class="u-codigo">${esc(f.codigo)}</pre></div></div>`;
+  document.getElementById("clase").innerHTML = `<div class="u-cab-clase"><span class="u-paq">paquete ${esc(c.paq)}</span><h3 style="font-size:24px">${esc(c.n)}</h3><p class="u-lead">${texto(c.resumen)}</p></div>
+    <div class="u-tabla">
+      <div class="u-fila titulo-fila"><div class="u-uml">${esc(c.n)}</div><div class="u-que"><span>Franja de arriba: el nombre. Va en letra normal (no cursiva): no es abstracta. Sin «interface»: es una clase común.</span></div><div class="u-src"><button class="u-ref" style="align-self:flex-start">public class ${esc(c.n)}</button></div></div>
+      <div class="u-fila"><div class="u-sep">Franja del medio: atributos${attrs.length ? "" : " (vacía)"}</div></div>
+      ${attrs.map(fila).join("")}
+      <div class="u-fila"><div class="u-sep">Franja de abajo: constructor y métodos</div></div>
+      ${mets.map(fila).join("")}
+    </div>`;
+}
+
+/* ---- Las flechas ---- */
+function tarjeta(r){
+  return `<article class="u-card">
+    <div class="u-card-cab" style="color:var(--${r.tipo})">${glifo(r.tipo)}<h4 style="color:var(--ink)">${esc(flechaTxt(r))}</h4>
+      ${r.rol ? `<code>${esc(r.rol)}</code>` : ""}${r.est ? `<span class="u-badge dep">${esc(r.est)}</span>` : ""}${r.mult ? `<span class="u-badge ${r.tipo}">${esc(r.mult[0])} — ${esc(r.mult[1])}</span>` : ""}</div>
+    <p><span class="u-k">Cómo se dice</span>${texto(r.leer)}</p>
+    <div><span class="u-k">En el código</span>${texto(r.codigo)}</div>
+    ${codigo(r.lineas)}
+    <p><span class="u-k">Por qué es esta</span>${texto(r.porque)}</p>
+    ${r.trampa ? `<div class="u-trampa"><span class="u-k">Si pregunta</span>${texto(r.trampa)}</div>` : ""}
+    <button class="u-btn-plano" data-rel-ir="${r.id}">Verla en el plano</button>
+  </article>`;
+}
+function pintarFlechas(){
+  const grupo = (tipo, titulo, sub) => {
+    const rs = D.rel.filter(r => r.tipo === tipo);
+    return `<div class="u-grupo"><h3 style="color:var(--${tipo})">${glifo(tipo)}<span style="color:var(--ink)">${titulo} · ${rs.length}</span></h3><p class="u-lead">${sub}</p><div class="u-cards">${rs.map(tarjeta).join("")}</div></div>`;
+  };
+  document.getElementById("lista-flechas").innerHTML =
+    grupo("comp", "Composición", "Rombo <b>lleno</b> del lado del dueño. El dueño guarda la otra clase en un atributo <b>y la crea él</b> con <code>new</code>. Si se destruye el dueño, se destruye la parte.") +
+    grupo("agr", "Agregación", "Rombo <b>vacío</b> del lado del dueño. Guarda la otra clase en un atributo, pero <b>la recibe ya creada</b>.") +
+    grupo("dep", "Dependencia", "Línea <b>punteada</b>. No hay atributo: la otra clase se usa como parámetro (<code>«parameter»</code>), variable local (<code>«local»</code>) o se crea y se devuelve (<code>«create»</code>).") +
+    `<div class="u-grupo"><h3>Flechas que no hay (y por qué)</h3><p class="u-lead">Tan importante como saber las que hay. Un generador automático podría inventarse algunas de estas.</p>
+      <div class="u-nohay">${D.nohay.map(([a, b]) => `<div><b>${esc(a)}</b>${texto(b)}</div>`).join("")}</div></div>
+     <div class="u-grupo"><h3>La notación completa</h3><div class="u-notacion">${D.notacion.map(([a, b]) => `<div>${esc(a)}</div><div>${texto(b)}</div>`).join("")}</div></div>`;
+}
+
+/* ---- Practicar ---- */
+const TARJETAS = [
+  ...D.rel.map(r => ({q: `Explique la flecha ${flechaTxt(r)}${r.rol ? " (" + r.rol + ")" : ""}: qué relación es, por qué y en qué línea.`,
+     a: `<p><span class="u-badge ${r.tipo}">${TIPO[r.tipo]}${r.est ? " " + esc(r.est) : ""}</span></p><p>${texto(r.leer)}</p><p>${texto(r.codigo)}</p><p>${texto(r.porque)}</p>`})),
+  ...D.preg.map(([q, a]) => ({q, a: `<p>${texto(a)}</p>`})),
+  ...D.clases.map(c => ({q: `Lea en voz alta la caja de ${c.n}: cada atributo con su visibilidad, tipo y si es {readOnly}.`,
+     a: c.filas.filter(f => !f.uml.includes("(")).map(f => `<p><code>${esc(f.uml)}</code> — ${texto(f.lectura)}</p>`).join("") || "<p>No tiene atributos: la franja del medio va vacía.</p>"})),
+];
+let orden = TARJETAS.map((_, i) => i), pos = 0, sabidas = new Set();
+try { sabidas = new Set(JSON.parse(localStorage.getItem("uml-bn-sabidas") || "[]")); } catch(_){}
+function guardarSabidas(){ try { localStorage.setItem("uml-bn-sabidas", JSON.stringify([...sabidas])); } catch(_){} }
+function pintarTarjeta(mostrar){
+  const i = orden[pos], t = TARJETAS[i];
+  document.getElementById("practica").innerHTML = `
+    <p class="u-progreso">Tarjeta ${pos + 1} de ${TARJETAS.length} · ${sabidas.size} marcadas como sabidas</p>
+    <div class="u-tarjeta"><span class="u-n">${sabidas.has(i) ? "✓ ya le salió antes" : "pendiente"}</span>
+      <div class="u-q">${texto(t.q)}</div>
+      ${mostrar ? `<div class="u-resp">${t.a}</div>` : ""}
+      <div class="u-acciones">
+        ${mostrar ? `<button class="u-btn prim" data-p="bien">Me salió</button><button class="u-btn" data-p="otra">Repetir después</button>`
+                  : `<button class="u-btn prim" data-p="ver">Mostrar la respuesta</button>`}
+        <button class="u-btn" data-p="sig">Saltar</button>
+        <button class="u-btn" data-p="mezclar">Mezclar</button>
+      </div></div>`;
+}
+function practicar(acc){
+  const i = orden[pos];
+  if (acc === "ver") return pintarTarjeta(true);
+  if (acc === "bien"){ sabidas.add(i); guardarSabidas(); }
+  if (acc === "otra"){ sabidas.delete(i); guardarSabidas(); orden.push(orden.splice(pos, 1)[0]); pos = Math.min(pos, orden.length - 1); return pintarTarjeta(false); }
+  if (acc === "mezclar"){ for (let k = orden.length - 1; k > 0; k--){ const j = Math.floor(Math.random() * (k + 1)); [orden[k], orden[j]] = [orden[j], orden[k]]; } pos = 0; return pintarTarjeta(false); }
+  pos = (pos + 1) % orden.length; pintarTarjeta(false);
+}
+
+/* ---- Preguntas ---- */
+function pintarPreguntas(){
+  document.getElementById("metodo").innerHTML = D.metodo.map(m => `<li>${texto(m)}</li>`).join("");
+  document.getElementById("lista-preguntas").innerHTML = D.preg.map(([q, a]) =>
+    `<details class="u-preg"><summary>${esc(q)}</summary><div><p>${texto(a)}</p></div></details>`).join("");
+}
+
+/* ---- Eventos ---- */
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.v){ location.hash = b.dataset.v; vista(b.dataset.v, true); return; }
+  if (b.dataset.rel){ verRel(b.dataset.rel); return; }
+  if (b.dataset.limpiar){ marcar(null); panelVacio(); return; }
+  if (b.dataset.sel){ claseActual = b.dataset.sel; try { localStorage.setItem("uml-bn-clase", claseActual); } catch(_){} pintarClase(); return; }
+  if (b.dataset.claseIr){ claseActual = b.dataset.claseIr; pintarClase(); location.hash = "clases"; vista("clases", true); return; }
+  if (b.dataset.relIr){ location.hash = "plano"; vista("plano", false); verRel(b.dataset.relIr); document.getElementById("hoja").scrollIntoView({block:"start"}); return; }
+  if (b.dataset.p){ practicar(b.dataset.p); }
+});
+
+panelVacio(); pintarClase(); pintarFlechas(); pintarTarjeta(false); pintarPreguntas();
+vista(location.hash.slice(1), false);
+</script>
+</body></html>

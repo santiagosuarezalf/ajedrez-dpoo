@@ -1,5 +1,5 @@
 
-package mundo;
+package modelo;
 
 /**
  * Una de las 64 casillas del tablero. Conoce su posición, que no cambia nunca, y la pieza que
