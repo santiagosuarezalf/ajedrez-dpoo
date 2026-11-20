@@ -338,14 +338,12 @@ text { font-family: Menlo, Consolas, monospace; fill: #111; }
 <text x="1978.0" y="972.0" class="eti">implementa</text>
 </g>
 <g class="rel" id="r-Piezas-Pieza">
-<polyline class="linea" points="1654.0,1470 1654.0,1138" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#tri)"/>
-<polyline class="linea" points="1036.0,1470 3286.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
-<polyline class="linea" points="1036.0,1520 1036.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
-<polyline class="linea" points="1486.0,1520 1486.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
-<polyline class="linea" points="1936.0,1520 1936.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
-<polyline class="linea" points="2386.0,1520 2386.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
-<polyline class="linea" points="2836.0,1520 2836.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
-<polyline class="linea" points="3286.0,1520 3286.0,1470" fill="none" stroke="#222" stroke-width="1.4"/>
+<polyline class="linea" points="1036.0,1520 1036.0,1400 1420,1400 1420,1138" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#tri)"/>
+<polyline class="linea" points="1486.0,1520 1486.0,1138" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#tri)"/>
+<polyline class="linea" points="1936.0,1520 1936.0,1400 1593.2,1400 1593.2,1138" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#tri)"/>
+<polyline class="linea" points="2386.0,1520 2386.0,1340 1684.4,1340 1684.4,1138" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#tri)"/>
+<polyline class="linea" points="2836.0,1520 2836.0,1280 1775.6,1280 1775.6,1138" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#tri)"/>
+<polyline class="linea" points="3286.0,1520 3286.0,1220 1866.8,1220 1866.8,1138" fill="none" stroke="#222" stroke-width="1.4" marker-end="url(#tri)"/>
 </g>
 <text x="40" y="1720" class="nota">Dependencias resumidas (no se dibuja una flecha por cada una para no enredar el diagrama):</text>
 <text x="40" y="1742" class="nota">· La flecha punteada de VentanaAjedrez al paquete modelo: usa Tablero, Casilla y Pieza como parámetros (mostrarTablero, simbolo) y devuelve TipoPieza (pedirPiezaCoronacion). Solo lee: nunca cambia el modelo.</text>

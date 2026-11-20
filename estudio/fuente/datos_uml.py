@@ -114,7 +114,7 @@ REL = [
          lineas=[ln("Peon", "extends Pieza"), ln("Torre", "extends Pieza"), ln("Caballo", "extends Pieza"), ln("Alfil", "extends Pieza"), ln("Dama", "extends Pieza"), ln("Rey", "extends Pieza")],
          leer="Las seis piezas son Pieza: heredan sus atributos y sus métodos.",
          codigo=f"Cada una hace `extends Pieza` ({ln('Peon', 'extends Pieza')}, {ln('Torre', 'extends Pieza')}, …) y llama `super(color)` en su constructor ({ln('Peon', 'super(color)')}).",
-         porque="Herencia (línea continua con triángulo hueco). Una sola punta hacia Pieza con las seis líneas unidas es la forma corta de dibujar seis herencias.",
+         porque="Herencia (línea continua con triángulo hueco). Son seis relaciones distintas, así que van seis líneas, cada una con su propio triángulo sobre Pieza: no se juntan en una sola punta.",
          trampa="Peon tiene un método más en su caja (`casillasAtacadas`) porque lo sobrescribe: ataca en diagonal aunque avanza de frente."),
 ]
 

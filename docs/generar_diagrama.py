@@ -275,15 +275,22 @@ linea([(px, 1090), (tpx + tpw, 1090)], "dep",
 mx, my, mw, mh = cajas["Movible"]
 linea([(px + pw, my + mh / 2), (mx, my + mh / 2)], "implementa",
       [(px + pw + 20, my + mh / 2 - 8, "implementa")], id_="Pieza-Movible")
-# herencia de las seis piezas
-bus = 1470
+# herencia de las seis piezas: cada subclase con su propia línea y su propio triángulo
+# (Navarro: las herencias no se juntan en una sola punta, son seis relaciones distintas).
+# Cada línea llega a un punto distinto del borde de abajo de Pieza; los niveles horizontales
+# están escalonados para que ninguna línea cruce a otra.
 rel("Piezas-Pieza")
-linea([(px + pw / 2, bus), (px + pw / 2, py + ph)], "hereda")
-xs_ = [cajas[n][0] + cajas[n][2] / 2 for n, _ in subs]
-linea([(xs_[0], bus), (xs_[-1], bus)], "nada")
+llegada = {"Peon": px + 70, "Torre": None, "Caballo": px + pw * 0.40,
+           "Alfil": px + pw * 0.55, "Dama": px + pw * 0.70, "Rey": px + pw * 0.85}
+nivel = {"Peon": 1400, "Caballo": 1400, "Alfil": 1340, "Dama": 1280, "Rey": 1220}
 for n, _ in subs:
     x_, y_, w_, h_ = cajas[n]
-    linea([(x_ + w_ / 2, y_), (x_ + w_ / 2, bus)], "nada")
+    c = x_ + w_ / 2
+    if llegada[n] is None:          # Torre queda justo debajo de Pieza: línea recta
+        linea([(c, y_), (c, py + ph)], "hereda")
+    else:
+        e = llegada[n]
+        linea([(c, y_), (c, nivel[n]), (e, nivel[n]), (e, py + ph)], "hereda")
 fin_rel()
 
 # ---------------- notas ----------------
