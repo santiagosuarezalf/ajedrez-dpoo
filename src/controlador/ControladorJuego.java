@@ -128,19 +128,16 @@ public class ControladorJuego implements ActionListener {
     }
 
     /**
-     * Arma el texto de estado según cómo va la partida.
+     * Arma el texto de estado según cómo va la partida. Si ya terminó, el resultado lo da el
+     * modelo ({@link Juego#getResultado()}): quien sabe cómo terminó es {@code Juego}.
      *
      * @return el turno, el aviso de jaque o el resultado final
      */
     private String textoEstado() {
         Color turno = juego.getTurno();
         String nombre = (turno == Color.BLANCO) ? "las blancas" : "las negras";
-        String rival = (turno == Color.BLANCO) ? "las negras" : "las blancas";
         if (juego.isTerminado()) {
-            if (juego.estaEnJaque(turno)) {
-                return "Jaque mate: ganan " + rival;
-            }
-            return "Rey ahogado: tablas";
+            return juego.getResultado();
         }
         if (juego.estaEnJaque(turno)) {
             return "¡Jaque! Juegan " + nombre;

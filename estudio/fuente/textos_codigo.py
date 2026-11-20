@@ -11,6 +11,8 @@ PAQ_MODELO = ("Dice que la clase está en el paquete `modelo`: la «cocina» del
 
 NUEVOS = {
     "Juego": [
+        (377, 377, ["REGLA"], "Guarda el resultado: ganan las del otro color, porque `turno` ya es el del que quedó en mate. El controlador lo pide con `getResultado()` (ControladorJuego:140) para mostrarlo."),
+        (381, 381, ["REGLA"], "Guarda el resultado de las tablas por rey ahogado."),
         (3, 3, [], "Importa `ArrayList`, la lista que `movimientosLegales` llena con las casillas legales (Juego:494)."),
         (29, 29, ["ENC", "REGLA"], "Atributo nuevo del corte III. Guarda la casilla del peón que llegó a la última fila mientras el jugador escoge en qué pieza se convierte. Si es `null`, no hay coronación pendiente. En el diagrama es una asociación con Casilla, multiplicidad 0..1."),
         (36, 36, ["ENC", "REGLA"], "Atributo nuevo para la captura al paso: la casilla que saltó el peón rival en su doble paso. Solo dura una jugada: Juego:147 lo borra en cada jugada y Juego:149 lo vuelve a poner si hubo doble paso."),
@@ -146,11 +148,11 @@ NUEVOS = {
         (121, 121, ["MVC"], "Le dice a la vista qué mostrar. Se llama después de cada clic."),
         (122, 124, [], "Si hay pieza escogida, le pide al modelo sus destinos legales (Juego:493). Si no, la lista queda vacía."),
         (126, 127, ["MVC"], "Le manda a la vista el tablero, la casilla escogida y los destinos (VentanaAjedrez:111), y el texto de estado."),
-        (135, 135, [], "Arma el texto que va arriba de la ventana."),
-        (136, 138, [], "El color en turno y los nombres para mostrar, con el operador ternario."),
-        (139, 143, ["REGLA"], "Si la partida terminó: si el que tenía el turno está en jaque, es jaque mate y gana el rival; si no, es rey ahogado (tablas)."),
-        (145, 146, [], "Si no ha terminado pero está en jaque, lo avisa."),
-        (148, 148, [], "Lo normal: de quién es el turno."),
+        (136, 136, [], "Arma el texto que va arriba de la ventana."),
+        (137, 138, [], "El color en turno y su nombre para mostrar, con el operador ternario."),
+        (139, 141, ["MVC", "GRASP"], "Si la partida terminó, el texto lo da el modelo: `getResultado()` (Juego:82) devuelve «Jaque mate: ganan …» o «Rey ahogado: tablas». Quien sabe cómo terminó es Juego (Experto en información); el controlador solo lo pasa a la vista."),
+        (142, 143, [], "Si no ha terminado pero está en jaque, lo avisa."),
+        (145, 145, [], "Lo normal: de quién es el turno."),
     ],
 
     "Ajedrez": [

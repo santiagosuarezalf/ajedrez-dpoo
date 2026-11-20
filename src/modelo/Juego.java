@@ -374,11 +374,11 @@ public class Juego {
      private void verificarFinDePartida(){
       if(estaEnJaque(turno) && !hayMovimientosLegales()){
         terminado = true;
-        resultado = "Jaque mate. Ganan " + turno.opuesto();
+        resultado = "Jaque mate: ganan las " + (turno == Color.BLANCO ? "negras" : "blancas");
       }
       else if(!estaEnJaque(turno) && !hayMovimientosLegales()){
         terminado = true;
-        resultado = " Ahogado (tablas)";
+        resultado = "Rey ahogado: tablas";
       }
      }
      /**

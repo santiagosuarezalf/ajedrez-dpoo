@@ -11,7 +11,21 @@ from xml.sax.saxutils import escape
 CW = 8.0          # ancho de un carácter de la fuente monoespaciada (13 px)
 LH = 18           # alto de un renglón
 PAD = 12
-W, H = 3580, 1900
+W, H = 3740, 2190
+DY = 160          # todo el contenido baja 160 px para dejar arriba el corredor de los «create»
+
+CAPAS = {}
+ORDEN_CAPAS = []
+
+
+def capa(nombre):
+    """Empieza a escribir en una capa (en Illustrator sale como un grupo con ese nombre)."""
+    global out
+    if nombre not in CAPAS:
+        CAPAS[nombre] = []
+        ORDEN_CAPAS.append(nombre)
+    out = CAPAS[nombre]
+
 
 out = []
 cajas = {}
@@ -59,12 +73,13 @@ def caja(id_, x, y, nombre, atributos, metodos, estereotipo=None, abstracta=Fals
 
 def texto(x, y, t, fmt):
     attrs = ''
-    if 'u' in fmt:
-        attrs += ' text-decoration="underline"'
     if 'i' in fmt:
         attrs += ' font-style="italic"'
-    t = t.replace('  ', '\u00a0\u00a0')
-    return f'<text x="{x}" y="{y}" class="mie"{attrs}>{escape(t)}</text>'
+    t2 = t.replace('  ', '\u00a0\u00a0')
+    res = f'<text x="{x}" y="{y}" class="mie"{attrs}>{escape(t2)}</text>'
+    if 'u' in fmt:   # subrayado (static) dibujado como línea, para que se vea igual en Illustrator
+        res += f'<line x1="{x}" y1="{y + 3}" x2="{x + len(t) * CW}" y2="{y + 3}" stroke="#111" stroke-width="1"/>'
+    return res
 
 
 def m(*lineas):
@@ -85,21 +100,47 @@ def lado(id_, cual, f=0.5):
             'izq': (x, y + h * f), 'der': (x + w, y + h * f)}[cual]
 
 
+def _u(a, b):
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    n = (dx * dx + dy * dy) ** 0.5
+    return dx / n, dy / n
+
+
+def _p(pts):
+    return ' '.join(f'{x:.1f},{y:.1f}' for x, y in pts)
+
+
 def linea(puntos, tipo, etiquetas=(), id_=None):
-    """tipo: comp, agreg, asoc, dep, hereda, implementa. Con id_ queda en su propio grupo clicable."""
+    """tipo: comp, agreg, asoc, dep, hereda, implementa, nada. Las puntas se dibujan como figuras
+    (no como marker) para que Illustrator las abra bien. Con id_ queda en su propio grupo clicable."""
     if id_:
         rel(id_)
-    d = ' '.join(f'{px},{py}' for px, py in puntos)
     rayas = ' stroke-dasharray="8,6"' if tipo in ('dep', 'implementa') else ''
-    ini = {'comp': ' marker-start="url(#rombo)"', 'agreg': ' marker-start="url(#romboV)"'}.get(tipo, '')
-    fin = {'comp': ' marker-end="url(#flecha)"', 'agreg': ' marker-end="url(#flecha)"',
-           'asoc': ' marker-end="url(#flecha)"', 'dep': ' marker-end="url(#flecha)"',
-           'hereda': ' marker-end="url(#tri)"', 'implementa': ' marker-end="url(#tri)"',
-           'nada': ''}[tipo]
-    out.append(f'<polyline class="linea" points="{d}" fill="none" stroke="#222" stroke-width="1.4"{rayas}{ini}{fin}/>')
+    out.append(f'<polyline class="linea" points="{_p(puntos)}" fill="none" stroke="#222" stroke-width="1.4"{rayas}/>')
+    # punta al final
+    e, a = puntos[-1], puntos[-2]
+    ux, uy = _u(a, e)
+    nx, ny = -uy, ux
+    if tipo in ('hereda', 'implementa'):
+        b = (e[0] - 18 * ux, e[1] - 18 * uy)
+        out.append(f'<polygon class="hueco" points="{_p([e, (b[0] + 9 * nx, b[1] + 9 * ny), (b[0] - 9 * nx, b[1] - 9 * ny)])}" fill="#fff" stroke="#222" stroke-width="1.4"/>')
+    elif tipo != 'nada':
+        b = (e[0] - 14 * ux, e[1] - 14 * uy)
+        out.append(f'<polyline class="punta" points="{_p([(b[0] + 7 * nx, b[1] + 7 * ny), e, (b[0] - 7 * nx, b[1] - 7 * ny)])}" fill="none" stroke="#222" stroke-width="1.6"/>')
+    # rombo al inicio
+    if tipo in ('comp', 'agreg'):
+        s0, s1 = puntos[0], puntos[1]
+        ux, uy = _u(s0, s1)
+        nx, ny = -uy, ux
+        pts = [s0, (s0[0] + 14 * ux + 7 * nx, s0[1] + 14 * uy + 7 * ny), (s0[0] + 28 * ux, s0[1] + 28 * uy),
+               (s0[0] + 14 * ux - 7 * nx, s0[1] + 14 * uy - 7 * ny)]
+        if tipo == 'comp':
+            out.append(f'<polygon class="lleno" points="{_p(pts)}" fill="#222" stroke="#222" stroke-width="1"/>')
+        else:
+            out.append(f'<polygon class="hueco" points="{_p(pts)}" fill="#fff" stroke="#222" stroke-width="1.4"/>')
     for (ex, ey, t, *ancla) in etiquetas:
-        a = f' text-anchor="{ancla[0]}"' if ancla else ''
-        out.append(f'<text x="{ex}" y="{ey}" class="eti"{a}>{escape(t)}</text>')
+        an = f' text-anchor="{ancla[0]}"' if ancla else ''
+        out.append(f'<text x="{ex}" y="{ey}" class="eti"{an}>{escape(t)}</text>')
     if id_:
         fin_rel()
 
@@ -119,9 +160,12 @@ def paquete(x, y, w, h, nombre, color):
 
 
 # ---------------- paquetes ----------------
+capa("Paquetes")
 paquete(30, 120, 700, 520, "controlador", "#eef4fb")
 paquete(30, 1180, 700, 420, "vista", "#f1f8ee")
-paquete(780, 120, 2760, 1560, "modelo", "#fbf8f1")
+paquete(780, 20, 2940, 1830, "modelo", "#fbf8f1")
+
+capa("Clases")
 
 # ---------------- controlador ----------------
 caja("Ajedrez", 60, 160, "Ajedrez", [], m("+ main(args: String[]): void|u"))
@@ -215,6 +259,7 @@ for nombre, ataca in subs:
     xs += cajas[nombre][2] + 18
 
 # ---------------- relaciones ----------------
+capa("Relaciones")
 # main crea las tres partes (variables locales con new)
 ax, ay, aw, ah = cajas["Ajedrez"]
 cx_, cy_, cw_, ch_ = cajas["ControladorJuego"]
@@ -242,10 +287,6 @@ fx, fy, fw, fh = cajas["JFrame"]
 linea([(320, vy), (320, fy + fh)], "hereda", id_="VentanaAjedrez-JFrame")
 # VentanaAjedrez usa ActionListener como parámetro (agregarControlador)
 linea([(500, vy), (500, aly + alh)], "dep", [(510, aly + alh + 40, "«parameter»")], id_="VentanaAjedrez-ActionListener")
-# VentanaAjedrez usa clases del modelo (dependencia hacia el paquete)
-linea([(vx + vw, vy + 200), (780, vy + 200)], "dep",
-      [(vx + vw + 12, vy + 190, "«parameter» / «return»")], id_="VentanaAjedrez-modelo")
-
 tx, ty_, tw, th = cajas["Tablero"]
 # Juego <*>- Tablero (composición: lo crea en el constructor)
 linea([(jx + jw, jy + 40), (tx, jy + 40)], "comp",
@@ -293,25 +334,92 @@ for n, _ in subs:
         linea([(c, y_), (c, nivel[n]), (e, nivel[n]), (e, py + ph)], "hereda")
 fin_rel()
 
+# ---------------- dependencias de uso (capa aparte) ----------------
+# Cada dependencia con su propia línea. Van en su propia capa para poder ocultarlas en Illustrator
+# cuando el diagrama se ve muy cargado.
+capa("Dependencias de uso")
+C = lambda n: cajas[n]
+
+
+def caja_xy(n):
+    x, y, w, h = cajas[n]
+    return x, y, x + w, y + h
+
+
+cjx0, cjy0, cjx1, cjy1 = caja_xy("ControladorJuego")
+vx0, vy0, vx1, vy1 = caja_xy("VentanaAjedrez")
+colx0, coly0, colx1, coly1 = caja_xy("Color")
+tpx0, tpy0, tpx1, tpy1 = caja_xy("TipoPieza")
+px0, py0, px1, py1 = caja_xy("Pieza")
+tbx0, tby0, tbx1, tby1 = caja_xy("Tablero")
+csx0, csy0, csx1, csy1 = caja_xy("Casilla")
+jx0, jy0, jx1, jy1 = caja_xy("Juego")
+mvx0, mvy0, mvx1, mvy1 = caja_xy("Movible")
+
+# controlador -> modelo (variables locales en casillaPulsada y textoEstado)
+linea([(cjx1, 492), (768, 492), (768, 930), (colx0, 930)], "dep", [(cjx1 + 10, 486, "«use»")], id_="ControladorJuego-Color")
+linea([(cjx1, 522), (748, 522), (748, 1080), (tpx0, 1080)], "dep", [(cjx1 + 10, 516, "«use»")], id_="ControladorJuego-TipoPieza")
+linea([(cjx1, 552), (738, 552), (738, 1010), (1300, 1010), (1300, 1050), (px0, 1050)], "dep",
+      [(cjx1 + 10, 546, "«use»")], id_="ControladorJuego-Pieza")
+
+# vista -> modelo (parámetros y retorno)
+linea([(vx1, 1250), (758, 1250), (758, 975), (colx0, 975)], "dep", [(vx1 + 10, 1244, "«use»")], id_="VentanaAjedrez-Color")
+linea([(vx1, 1270), (776, 1270), (776, 1180), (tpx0, 1180)], "dep", [(vx1 + 10, 1288, "«return»")], id_="VentanaAjedrez-TipoPieza")
+linea([(vx1, 1340), (1380, 1340), (1380, py1)], "dep", [(1100, 1334, "«parameter»")], id_="VentanaAjedrez-Pieza")
+linea([(vx1, 1300), (1240, 1300), (1240, 745), (1780, 745), (1780, tby1)], "dep",
+      [(1790, 730, "«parameter»")], id_="VentanaAjedrez-Tablero")
+linea([(vx1, 1320), (1320, 1320), (1320, 765), (2620, 765), (2620, csy1)], "dep",
+      [(2450, 758, "«parameter»")], id_="VentanaAjedrez-Casilla")
+
+# Juego -> Pieza (variable local en mover) y -> TipoPieza (parámetro de coronacion)
+linea([(1335, jy1), (1335, 830), (px0, 830)], "dep", [(1260, 822, "«use»")], id_="Juego-Pieza")
+linea([(1040, jy1), (1040, 1150), (tpx1, 1150)], "dep", [(1048, 1142, "«parameter»")], id_="Juego-TipoPieza")
+
+# Tablero <-> Pieza y Tablero -> Color
+linea([(1900, tby1), (1900, py0)], "dep", [(1908, 790 - 12, "«parameter»")], id_="Tablero-Pieza")
+linea([(1940, py0), (1940, tby1)], "dep", [(1948, tby1 + 30, "«parameter»")], id_="Pieza-Tablero")
+linea([(1720, tby1), (1720, 720), (1060, 720), (1060, 870), (colx1 - 40, 870), (colx1 - 40, coly0)], "dep",
+      [(1450, 714, "«parameter»")], id_="Tablero-Color")
+
+# Movible -> Tablero (parámetro) y -> Casilla (retorno)
+linea([(3000, mvy0), (3000, 600), (2140, 600), (2140, tby1)], "dep", [(2700, 594, "«parameter»")], id_="Movible-Tablero")
+linea([(3100, mvy0), (3100, 540), (2860, 540), (2860, csy1)], "dep", [(2930, 534, "«return»")], id_="Movible-Casilla")
+
+# «create»: Tablero crea las seis piezas (configurarInicial) y Juego crea la pieza de la coronación.
+# Suben a un corredor por encima del paquete, bajan por la derecha y entran por debajo de cada pieza.
+centro = {n: cajas[n][0] + cajas[n][2] / 2 for n, _ in subs}
+fondo_p = {n: cajas[n][1] + cajas[n][3] for n, _ in subs}
+creates = ([("Juego", n, x) for n, x in zip(["Torre", "Caballo", "Alfil", "Dama"], [1180, 1220, 1260, 1300])] +
+           [("Tablero", n, x) for n, x in zip(["Peon", "Torre", "Caballo", "Alfil", "Dama", "Rey"],
+                                             [1960, 2000, 2040, 2080, 2120, 2160])])
+grupos = {"Juego": [], "Tablero": []}
+for k, (src, dst, sx_) in enumerate(creates):
+    nivel_arriba = -70 + k * 8                 # corredor de arriba (fuera del paquete, encima del título del paquete)
+    xc = 3700 - k * 14                         # corredor de la derecha
+    nivel_abajo = 1830 - k * 14                # franja de abajo
+    ent = centro[dst] + (-60 if src == "Juego" else 60)
+    sy_ = cajas[src][1]
+    grupos[src].append(([(sx_, sy_), (sx_, nivel_arriba), (xc, nivel_arriba), (xc, nivel_abajo),
+                         (ent, nivel_abajo), (ent, fondo_p[dst])], (ent + 4, fondo_p[dst] + 15, "«create»")))
+for src, rid in (("Tablero", "Tablero-Piezas"), ("Juego", "Juego-Coronacion")):
+    rel(rid)
+    for pts, eti in grupos[src]:
+        linea(pts, "dep", [eti])
+    fin_rel()
+
 # ---------------- notas ----------------
+capa("Notas")
 nota = [
-    "Dependencias resumidas (no se dibuja una flecha por cada una para no enredar el diagrama):",
-    "· La flecha punteada de VentanaAjedrez al paquete modelo: usa Tablero, Casilla y Pieza como parámetros (mostrarTablero, simbolo) y devuelve TipoPieza (pedirPiezaCoronacion). Solo lee: nunca cambia el modelo.",
-    "· ControladorJuego usa Pieza, TipoPieza, Color y ActionEvent como variables locales o parámetros (casillaPulsada, textoEstado, actionPerformed).",
-    "· Tablero «create» las seis piezas en configurarInicial().   · Juego «create» Dama, Torre, Alfil o Caballo en coronacion(tipo: TipoPieza).",
+    "Las dependencias de uso (líneas punteadas con «use», «parameter», «return» y «create») van en la capa «Dependencias de uso»; se pueden ocultar sin perder el resto del diagrama.",
+    "Las seis subclases heredan de Pieza sus dependencias con Tablero (parámetro de getMovimientosPosibles) y con Casilla; por eso esas líneas salen de Pieza.",
+    "Las clases de Java que solo aparecen como tipo (JButton, JLabel, String, List, ActionEvent) no se dibujan como caja; solo JFrame y ActionListener, porque hay herencia e implementación.",
 ]
-ny = 1720
-for i, t in enumerate(nota):
-    out.append(f'<text x="40" y="{ny + i * 22}" class="nota">{escape(t)}</text>')
-out.append(f'<text x="40" y="{H - 30}" class="ley">{escape("+ público · − privado · # protegido · cursiva = abstracto · subrayado = estático (static) · {readOnly} = final · ◆ composición (el todo crea la parte) · ◇ agregación (la recibe ya creada) · ▷ continua = herencia · ▷ punteada = implementa · → asociación (atributo) · ⇢ dependencia (parámetro, variable local o retorno)")}</text>')
+ny = 1900
+for k, t in enumerate(nota):
+    out.append(f'<text x="40" y="{ny + k * 22}" class="nota">{escape(t)}</text>')
+out.append(f'<text x="40" y="{H - DY - 24}" class="ley">{escape("+ público · − privado · # protegido · cursiva = abstracto · subrayado = estático (static) · {readOnly} = final · ◆ composición (el todo crea la parte) · ◇ agregación (la recibe ya creada) · ▷ continua = herencia · ▷ punteada = implementa · → asociación (atributo) · ⇢ dependencia (parámetro, variable local, retorno o creación)")}</text>')
 
 cabeza = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
-<defs>
-<marker id="tri" viewBox="0 0 20 20" refX="19" refY="10" markerWidth="18" markerHeight="18" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,1 L19,10 L1,19 Z" fill="#fff" stroke="#222" stroke-width="1.4"/></marker>
-<marker id="flecha" viewBox="0 0 20 20" refX="19" refY="10" markerWidth="14" markerHeight="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,2 L19,10 L1,18" fill="none" stroke="#222" stroke-width="1.6"/></marker>
-<marker id="rombo" viewBox="0 0 30 16" refX="1" refY="8" markerWidth="26" markerHeight="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,8 L15,1 L29,8 L15,15 Z" fill="#222"/></marker>
-<marker id="romboV" viewBox="0 0 30 16" refX="1" refY="8" markerWidth="26" markerHeight="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,8 L15,1 L29,8 L15,15 Z" fill="#fff" stroke="#222" stroke-width="1.4"/></marker>
-</defs>
 <style>
 text {{ font-family: Menlo, Consolas, monospace; fill: #111; }}
 .mie {{ font-size: 13px; }}
@@ -324,9 +432,15 @@ text {{ font-family: Menlo, Consolas, monospace; fill: #111; }}
 .nota {{ font-size: 13px; font-family: Helvetica, Arial, sans-serif; fill: #333; }}
 .ley {{ font-size: 13px; font-family: Helvetica, Arial, sans-serif; fill: #444; }}
 </style>
-<rect width="{W}" height="{H}" fill="#fff"/>
+<rect id="Fondo" width="{W}" height="{H}" fill="#fff"/>
 <text x="40" y="44" class="tit">Diagrama de clases — Ajedrez MVC con interfaz gráfica · Diseño y Programación Orientados a Objetos · Corte III</text>
 <text x="40" y="70" class="sub">Juan José Betancourt Quintero (67001968) · Santiago Suárez Alfonso (67001862) · paquetes modelo, vista y controlador</text>
 '''
-Path(__file__).with_name("diagrama-clases.svg").write_text(cabeza + "\n".join(out) + "\n</svg>\n", encoding="utf-8")
+cuerpo = []
+for nombre in ORDEN_CAPAS:
+    gid = nombre.replace(" ", "_")
+    cuerpo.append(f'<g id="{gid}" data-name="{nombre}" transform="translate(0,{DY})">')
+    cuerpo += CAPAS[nombre]
+    cuerpo.append('</g>')
+Path(__file__).with_name("diagrama-clases.svg").write_text(cabeza + "\n".join(cuerpo) + "\n</svg>\n", encoding="utf-8")
 print("listo", {k: tuple(round(v) for v in b) for k, b in cajas.items()})
